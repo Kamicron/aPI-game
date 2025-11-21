@@ -1,0 +1,22 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+
+		{
+			"type": "npm",
+			"script": "start:dev",
+			"path": "backend",
+			"problemMatcher": [],
+			"label": "npm: start:dev - backend",
+			"detail": "nest start --watch"
+		},
+		{
+			"type": "npm",
+			"script": "dev",
+			"path": "frontend",
+			"problemMatcher": [],
+			"label": "npm: dev - frontend",
+			"detail": "nuxt dev"
+		}
+	]
+}
