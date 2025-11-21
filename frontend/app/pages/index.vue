@@ -1,12 +1,10 @@
 <template>
   <div>
     <h1>Accueil</h1>
-    <button @click="rollDice(2, 6)">lancer 2d6</button>
+    <button @click="handleRoll">lancer 2d6</button>
 
     <div class="dice-list">
       <DiceD6 v-for="(value, index) in diceValues" backgroundColor="#ffff00" :key="index"
-        :value="(value as 1 | 2 | 3 | 4 | 5 | 6)" :roll-id="rollId" />
-      <DiceD6 v-for="(value, index) in diceValues" backgroundColor="#00254f" :key="index"
         :value="(value as 1 | 2 | 3 | 4 | 5 | 6)" :roll-id="rollId" />
     </div>
 
@@ -38,7 +36,7 @@ const { diceValues, rollId, roll: rollDice } = useRollDice()
 const roomId = ref('test-room-1')
 const playerId = ref(`guest-${Math.random().toString(36).slice(2, 8)}`)
 
-const { messages, connected, sendMessage } = useGameChat(roomId, playerId)
+const { messages, connected, sendMessage, notifyRoll } = useGameChat(roomId, playerId)
 
 const draft = ref('')
 
@@ -46,6 +44,11 @@ function handleSend() {
   if (!draft.value.trim()) return
   sendMessage(draft.value)
   draft.value = ''
+}
+
+function handleRoll() {
+  rollDice(2, 6)
+  notifyRoll([...diceValues.value])
 }
 </script>
 

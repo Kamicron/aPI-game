@@ -81,6 +81,16 @@ export function useGameChat(
     })
   }
 
+  function notifyRoll(result: number[]) {
+    if (!socket) return
+
+    socket.emit('notifyRoll', {
+      roomId: getRoomId(),
+      playerId: getPlayerId(),
+      result,
+    })
+  }
+
   onMounted(connect)
   onUnmounted(disconnect)
 
@@ -88,5 +98,6 @@ export function useGameChat(
     messages,
     connected,
     sendMessage,
+    notifyRoll,
   }
 }
