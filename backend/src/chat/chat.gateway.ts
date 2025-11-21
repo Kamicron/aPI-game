@@ -30,6 +30,12 @@ interface SendMessagePayload {
   content: string;
 }
 
+interface NotifyRollPayload {
+  roomId: string;
+  playerId: string;
+  result: number[];
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env.FRONT_URL || 'http://localhost:3000',
@@ -89,6 +95,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
 
     this.server.to(roomId).emit('message', message);
+  }
+
+  @SubscribeMessage('notifyRoll')
+  handleNotifyRoll(@MessageBody() payload: NotifyRollPayload) {
+    const { roomId, playerId, result } = payload;
+    if (!roomId) return;
+
+    const content = `Joueur ${playerId} a lancé les dés: ${result.join(', ')}`;
+    this.emitSystemMessage(roomId, content);
   }
 
   emitSystemMessage(roomId: string, content: string) {
