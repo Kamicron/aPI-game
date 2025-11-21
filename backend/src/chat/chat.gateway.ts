@@ -65,7 +65,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(roomId);
 
-    this.emitSystemMessage(roomId, `Player ${playerId} joined the room`);
+    this.emitSystemMessage(roomId, `Joueur ${playerId} a rejoint la partie`);
   }
 
   @SubscribeMessage('leaveRoom')
@@ -78,7 +78,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.leave(roomId);
 
-    this.emitSystemMessage(roomId, `Player ${playerId} left the room`);
+    this.emitSystemMessage(roomId, `Joueur ${playerId} a quitté la partie`);
   }
 
   @SubscribeMessage('sendMessage')
