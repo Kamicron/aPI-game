@@ -6,28 +6,13 @@
       <button @click="zoomOut" class="zoom-btn" title="Zoom arrière">−</button>
       <span class="zoom-level">{{ Math.round(zoom * 100) }}%</span>
     </div>
-    
+
     <div class="board-layout">
-      <div 
-        class="board-canvas-container" 
-        @wheel.prevent="handleWheel"
-        @mousedown="startPan"
-        @mousemove="handlePan"
-        @mouseup="endPan"
-        @mouseleave="endPan"
-      >
-        <div 
-          class="board-canvas" 
-          :style="canvasStyle"
-        >
-          <BoardTile 
-            v-for="tile in board.tiles" 
-            :key="tile.id" 
-            :tile="tile" 
-            :left="offset + tile.x * tileSize"
-            :top="offset + tile.y * tileSize"
-            @click="focusTile"
-          />
+      <div class="board-canvas-container" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan"
+        @mouseup="endPan" @mouseleave="endPan">
+        <div class="board-canvas" :style="canvasStyle">
+          <BoardTile v-for="tile in board.tiles" :key="tile.id" :tile="tile" :left="offset + tile.x * tileSize"
+            :top="offset + tile.y * tileSize" @click="focusTile" />
         </div>
       </div>
 
@@ -37,30 +22,30 @@
           <h3>{{ getTileTitle(selectedTile) }}</h3>
           <button @click="selectedTile = null" class="close-btn">×</button>
         </div>
-        
+
         <div class="tile-info-content">
           <div class="tile-info-image">
             <img :src="getTileImage(selectedTile)" :alt="selectedTile.kind" />
           </div>
-          
+
           <div class="tile-info-details">
             <div class="tile-info-row">
               <span class="label">Type :</span>
               <span class="value">{{ getTileTypeName(selectedTile) }}</span>
             </div>
-            
+
             <div v-if="selectedTile.coinsChange" class="tile-info-row">
               <span class="label">Pièces :</span>
               <span class="value" :class="selectedTile.coinsChange > 0 ? 'positive' : 'negative'">
                 {{ selectedTile.coinsChange > 0 ? '+' : '' }}{{ selectedTile.coinsChange }}
               </span>
             </div>
-            
+
             <div v-if="selectedTile.keyPrice" class="tile-info-row">
               <span class="label">Prix :</span>
               <span class="value">{{ selectedTile.keyPrice }} pièces</span>
             </div>
-            
+
             <div class="tile-info-description">
               {{ getTileDescription(selectedTile) }}
             </div>
@@ -120,20 +105,20 @@ const resetZoom = () => {
 const handleWheel = (e: WheelEvent) => {
   const delta = e.deltaY > 0 ? -0.1 : 0.1
   const newZoom = Math.max(0.5, Math.min(3, zoom.value + delta))
-  
+
   // Position de la souris par rapport au container
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
-  
+
   // Calculer le point sous la souris avant le zoom
   const pointX = (mouseX - panX.value * zoom.value) / zoom.value
   const pointY = (mouseY - panY.value * zoom.value) / zoom.value
-  
+
   // Ajuster le pan pour que le point reste sous la souris après le zoom
   panX.value = (mouseX - pointX * newZoom) / newZoom
   panY.value = (mouseY - pointY * newZoom) / newZoom
-  
+
   zoom.value = newZoom
 }
 
@@ -146,13 +131,13 @@ const startPan = (e: MouseEvent) => {
 
 const handlePan = (e: MouseEvent) => {
   if (!isPanning.value) return
-  
+
   const deltaX = e.clientX - lastMouseX.value
   const deltaY = e.clientY - lastMouseY.value
-  
+
   panX.value += deltaX / zoom.value
   panY.value += deltaY / zoom.value
-  
+
   lastMouseX.value = e.clientX
   lastMouseY.value = e.clientY
 }
@@ -165,25 +150,25 @@ const endPan = () => {
 const focusTile = (tile: Tile, x: number, y: number) => {
   // Empêcher le focus si on est en train de déplacer
   if (isPanning.value) return
-  
+
   // Sélectionner la tuile
   selectedTile.value = tile
-  
+
   // Position de la tuile dans le canvas
   const tileCenterX = offset + x * tileSize + tileSize / 2
   const tileCenterY = offset + y * tileSize + tileSize / 2
-  
+
   // Zoomer à 2x
   const targetZoom = 2
-  
+
   // Centre du container
   const containerCenterX = 400
   const containerCenterY = 400
-  
+
   // Calculer le pan pour centrer la tuile
   panX.value = (containerCenterX - tileCenterX * targetZoom) / targetZoom
   panY.value = (containerCenterY - tileCenterY * targetZoom) / targetZoom
-  
+
   zoom.value = targetZoom
 }
 
@@ -291,8 +276,8 @@ const getTileDescription = (tile: Tile) => {
 
 .board-canvas-container {
   position: relative;
-  width: 800px;
-  height: 800px;
+  width: 1200px;
+  height: 700px;
   border: 1px solid #ccc;
   border-radius: 8px;
   background: #f5f5f5;
@@ -331,6 +316,7 @@ const getTileDescription = (tile: Tile) => {
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
