@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { Board } from './board.types';
 import { BoardService } from './board.service';
 
@@ -7,7 +7,7 @@ export class BoardController {
   constructor(private readonly boardService: BoardService) {}
 
   @Get()
-  getBoard(): Board {
-    return this.boardService.generateBoard();
+  getBoard(@Query('size') size?: string): Board {
+    return this.boardService.generateBoard(undefined, size);
   }
 }
