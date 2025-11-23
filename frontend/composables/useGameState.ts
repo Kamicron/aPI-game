@@ -135,6 +135,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     socket.value.emit('buyKey', { roomId, playerId })
   }
 
+  const useBonus = (bonusId: string) => {
+    if (!socket.value) return
+    socket.value.emit('useBonus', { roomId, playerId, bonusId })
+  }
+
   const getGameState = () => {
     if (!socket.value) return
     if (!socket.value || !connected.value) {
@@ -166,6 +171,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     rollDice,
     movePlayer,
     buyKey,
+    useBonus,
     getGameState,
   }
 }

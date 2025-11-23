@@ -18,17 +18,26 @@ import BoardCanvas from '../components/board/BoardCanvas.vue'
 
 const route = useRoute()
 
-// Récupérer les infos de la room
+// Récupérer les infos de la room (côté client uniquement)
 const roomCode = (route.query.room as string) || 'default-room'
-const playerName = localStorage.getItem('playerName') || 'Guest'
-const playerId = localStorage.getItem('playerId') || 'guest-' + Math.random().toString(36).slice(2)
+
+// Fonction helper pour récupérer localStorage de manière sûre
+const getLocalStorage = (key: string, defaultValue: string): string => {
+  if (typeof window === 'undefined') return defaultValue
+  return localStorage.getItem(key) ?? defaultValue
+}
+
+const playerName = getLocalStorage('playerName', 'Guest')
+const playerId = getLocalStorage('playerId', 'guest-' + Math.random().toString(36).slice(2))
 const playerColor = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#6366f1'][Math.floor(Math.random() * 5)]
 
 // Vérifier que l'utilisateur a bien un roomCode
 onMounted(() => {
-  if (!route.query.room || !localStorage.getItem('playerName') || !localStorage.getItem('playerId')) {
-    // Rediriger vers l'accueil si pas de room
-    navigateTo('/')
+  if (typeof window !== 'undefined') {
+    if (!route.query.room || !localStorage.getItem('playerName') || !localStorage.getItem('playerId')) {
+      // Rediriger vers l'accueil si pas de room
+      navigateTo('/')
+    }
   }
 })
 

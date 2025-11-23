@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { BoardService } from '../board/board.service';
 import { TileEffectsService } from './tile-effects.service';
+import { BonusEffectsService } from './bonus-effects.service';
 
 export interface Player {
   id: string;
@@ -21,6 +22,12 @@ export interface Player {
   keys: number;
   bonuses: Bonus[];
   avatar?: string;
+  activeBonuses?: {
+    shield?: boolean;
+    safe?: number; // Nombre de tours restants
+    multiplier?: number; // Nombre de tours restants
+    lucky?: number; // Nombre de tours restants
+  };
 }
 
 export type BonusType = 
@@ -72,6 +79,12 @@ interface BuyKeyPayload {
   playerId: string;
 }
 
+interface UseBonusPayload {
+  roomId: string;
+  playerId: string;
+  bonusId: string;
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env.FRONT_URL || 'http://localhost:3000',
@@ -92,6 +105,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly boardService: BoardService,
     private readonly tileEffectsService: TileEffectsService,
+    private readonly bonusEffectsService: BonusEffectsService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -398,6 +412,40 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.emitSystemMessage(roomId, `🔑 ${player.name} achète une clé pour ${keyPrice} pièces !`);
 
     return { success: true, newCoins: player.coins, newKeys: player.keys };
+  }
+
+  @SubscribeMessage('useBonus')
+  handleUseBonus(@MessageBody() payload: UseBonusPayload) {
+    const { roomId, playerId, bonusId } = payload;
+    
+    const gameState = this.games.get(roomId);
+    if (!gameState) {
+      return { success: false, error: 'Partie introuvable' };
+    }
+
+    // Vérifier que c'est le tour du joueur
+    if (gameState.currentTurnPlayerId !== playerId) {
+      return { success: false, error: 'Ce n\'est pas votre tour' };
+    }
+
+    // Trouver le joueur
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) {
+      return { success: false, error: 'Joueur introuvable' };
+    }
+
+    // Utiliser le bonus
+    const result = this.bonusEffectsService.useBonus(player, bonusId);
+    
+    if (!result.success) {
+      return result;
+    }
+
+    // Notifier tous les joueurs
+    this.server.to(roomId).emit('gameState', gameState);
+    this.emitSystemMessage(roomId, result.message);
+
+    return result;
   }
 
   // Méthode utilitaire pour envoyer un message système dans le chat
