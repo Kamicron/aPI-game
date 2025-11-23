@@ -1,17 +1,6 @@
 <template>
-  <div 
-    class="player-pawn" 
-    :style="pawnStyle"
-    :title="player.name"
-  >
-    <!-- Photo de profil si disponible -->
-    <img 
-      v-if="player.avatar" 
-      :src="player.avatar" 
-      :alt="player.name"
-      class="player-avatar-image"
-    />
-    <!-- Sinon initiales sur fond uni -->
+  <div class="player-pawn" :style="pawnStyle" :title="player.name">
+    <img v-if="player.avatar" :src="player.avatar" :alt="player.name" class="player-avatar-image" />
     <div v-else class="player-avatar-initials">
       {{ playerInitials }}
     </div>
@@ -24,8 +13,8 @@ import { computed } from 'vue';
 export interface Player {
   id: string
   name: string
-  color: string // Couleur du contour
-  avatar?: string // URL de la photo de profil (optionnel)
+  color: string
+  avatar?: string
 }
 
 const props = defineProps<{
@@ -37,14 +26,13 @@ const pawnStyle = computed(() => {
   const style: Record<string, string> = {
     width: `${props.size || 32}px`,
     height: `${props.size || 32}px`,
-    borderColor: props.player.color, // Contour avec la couleur du joueur
+    borderColor: props.player.color,
   }
-  
-  // Si pas d'avatar, fond uni avec la couleur
+
   if (!props.player.avatar) {
     style.backgroundColor = props.player.color
   }
-  
+
   return style
 })
 
@@ -63,7 +51,7 @@ const playerInitials = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid; // Bordure colorée (couleur définie dans le style inline)
+  border: 3px solid;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   transition: transform 0.2s;
