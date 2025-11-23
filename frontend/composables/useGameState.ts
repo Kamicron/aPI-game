@@ -24,6 +24,7 @@ export interface GameState {
   players: Player[]
   currentTurnPlayerId: string
   board: any
+  boardSize: number
   status: 'waiting' | 'playing' | 'finished'
   winner?: string
 }
@@ -32,6 +33,9 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
   const socket = ref<Socket | null>(null)
   const connected = ref(false)
   const gameState = ref<GameState | null>(null)
+  const lastDiceResult = ref<number | null>(null)
+  const lastDicePlayerId = ref<string | null>(null)
+  
   const currentPlayer = computed(() => {
     return gameState.value?.players.find(p => p.id === playerId) || null
   })
@@ -76,12 +80,17 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
       console.log('Player joined:', data)
     })
 
-    socket.value.on('playerLeft', (data: { playerId: string }) => {
+    socket.value.on('playerLeft', (data: { playerId: string; playerName?: string }) => {
       console.log('Player left:', data)
+      // Le gameState sera mis à jour automatiquement
     })
 
-    socket.value.on('diceRolled', (data: { playerId: string; result: number }) => {
+    socket.value.on('diceRolled', (data: { playerId: string; result: number; newPosition: number; nextPlayerId: string }) => {
       console.log('Dice rolled:', data)
+      // Stocker le résultat du dé et l'ID du joueur
+      lastDiceResult.value = data.result
+      lastDicePlayerId.value = data.playerId
+      // L'état du jeu sera mis à jour via l'événement 'gameState'
     })
 
     socket.value.on('playerMoved', (data: { playerId: string; position: number; nextPlayerId: string }) => {
@@ -152,6 +161,8 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     gameState,
     currentPlayer,
     isMyTurn,
+    lastDiceResult,
+    lastDicePlayerId,
     connect,
     disconnect,
     rollDice,

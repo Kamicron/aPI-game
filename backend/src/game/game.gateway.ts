@@ -8,6 +8,8 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Injectable } from '@nestjs/common';
+import { BoardService } from '../board/board.service';
 
 export interface Player {
   id: string;
@@ -32,6 +34,7 @@ export interface GameState {
   players: Player[];
   currentTurnPlayerId: string;
   board: any; // Type du board depuis board.types.ts
+  boardSize: number; // Nombre de tuiles sur le plateau
   status: 'waiting' | 'playing' | 'finished';
   winner?: string;
 }
@@ -60,12 +63,18 @@ interface MovePlayerPayload {
     credentials: true,
   },
 })
+@Injectable()
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
   // Stockage en mémoire des parties (à remplacer par une DB plus tard)
   private games: Map<string, GameState> = new Map();
+  
+  // Map pour tracker quel client est dans quelle room et quel joueur
+  private clientToPlayer: Map<string, { roomId: string; playerId: string }> = new Map();
+
+  constructor(private readonly boardService: BoardService) {}
 
   handleConnection(client: Socket) {
     console.log('Client connected to game:', client.id);
@@ -73,6 +82,46 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log('Client disconnected from game:', client.id);
+    
+    // Récupérer les infos du joueur
+    const playerInfo = this.clientToPlayer.get(client.id);
+    
+    if (playerInfo) {
+      const { roomId, playerId } = playerInfo;
+      const gameState = this.games.get(roomId);
+      
+      if (gameState) {
+        // Trouver le nom du joueur avant de le retirer
+        const player = gameState.players.find(p => p.id === playerId);
+        const playerName = player?.name || playerId;
+        
+        // Retirer le joueur de la partie
+        gameState.players = gameState.players.filter(p => p.id !== playerId);
+        
+        // Si c'était le tour de ce joueur, passer au suivant
+        if (gameState.currentTurnPlayerId === playerId && gameState.players.length > 0) {
+          gameState.currentTurnPlayerId = gameState.players[0].id;
+        }
+        
+        // Si plus de joueurs, supprimer la partie
+        if (gameState.players.length === 0) {
+          this.games.delete(roomId);
+          console.log(`Room ${roomId} deleted (no players left)`);
+        } else {
+          // Sinon, notifier les autres joueurs
+          this.server.to(roomId).emit('gameState', gameState);
+          this.server.to(roomId).emit('playerLeft', { playerId, playerName });
+          
+          // Envoyer un message système dans le chat
+          this.emitSystemMessage(roomId, `${playerName} a quitté la partie`);
+          
+          console.log(`Player ${playerName} disconnected from room ${roomId}`);
+        }
+      }
+      
+      // Retirer le mapping
+      this.clientToPlayer.delete(client.id);
+    }
   }
 
   @SubscribeMessage('joinGame')
@@ -85,20 +134,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!roomId || !playerId) return;
 
     client.join(roomId);
+    
+    // Tracker le client
+    this.clientToPlayer.set(client.id, { roomId, playerId });
 
     // Récupérer ou créer la partie
     let gameState = this.games.get(roomId);
     
     if (!gameState) {
-      // Créer une nouvelle partie
+      // Créer une nouvelle partie avec un plateau généré
+      const board = this.boardService.generateBoard(roomId);
+      
       gameState = {
         roomId,
         players: [],
         currentTurnPlayerId: playerId,
-        board: null, // À initialiser avec le board service
+        board: board,
+        boardSize: board.tiles.length, // Nombre réel de tuiles du plateau généré
         status: 'waiting',
       };
       this.games.set(roomId, gameState);
+      
+      console.log(`New game created for room ${roomId} with ${board.tiles.length} tiles`);
     }
 
     // Vérifier si le joueur existe déjà
@@ -117,6 +174,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       };
       
       gameState.players.push(newPlayer);
+      
+      // Envoyer un message système dans le chat
+      this.emitSystemMessage(roomId, `${playerName} a rejoint la partie`);
+      
+      console.log(`Player ${playerName} (${playerId}) joined room ${roomId}`);
     }
 
     // Envoyer l'état du jeu à tous les joueurs de la room
@@ -144,9 +206,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Retirer le joueur
       gameState.players = gameState.players.filter(p => p.id !== playerId);
       
+      // Si c'était le tour de ce joueur, passer au suivant
+      if (gameState.currentTurnPlayerId === playerId && gameState.players.length > 0) {
+        gameState.currentTurnPlayerId = gameState.players[0].id;
+      }
+      
       // Si plus de joueurs, supprimer la partie
       if (gameState.players.length === 0) {
         this.games.delete(roomId);
+        console.log(`Room ${roomId} deleted (no players left)`);
       } else {
         // Sinon, mettre à jour l'état
         this.server.to(roomId).emit('gameState', gameState);
@@ -155,8 +223,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.leave(roomId);
     
+    // Retirer le tracking
+    this.clientToPlayer.delete(client.id);
+    
     // Notifier les autres joueurs
     client.to(roomId).emit('playerLeft', { playerId });
+    
+    console.log(`Player ${playerId} left room ${roomId}`);
   }
 
   @SubscribeMessage('rollDice')
@@ -171,16 +244,38 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { error: 'Ce n\'est pas votre tour' };
     }
 
+    // Trouver le joueur
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+
     // Lancer les dés (1 à 6)
     const diceResult = Math.floor(Math.random() * 6) + 1;
 
-    // Envoyer le résultat à tous les joueurs
+    // Calculer la nouvelle position (plateau circulaire)
+    const newPosition = (player.position + diceResult) % gameState.boardSize;
+
+    // Mettre à jour la position du joueur
+    player.position = newPosition;
+
+    // TODO: Appliquer les effets de la tuile
+
+    // Passer au joueur suivant
+    const currentIndex = gameState.players.findIndex(p => p.id === playerId);
+    const nextIndex = (currentIndex + 1) % gameState.players.length;
+    gameState.currentTurnPlayerId = gameState.players[nextIndex].id;
+
+    // Envoyer le résultat du dé et la nouvelle position à tous les joueurs
     this.server.to(roomId).emit('diceRolled', {
       playerId,
       result: diceResult,
+      newPosition,
+      nextPlayerId: gameState.currentTurnPlayerId,
     });
 
-    return { result: diceResult };
+    // Envoyer l'état mis à jour
+    this.server.to(roomId).emit('gameState', gameState);
+
+    return { result: diceResult, newPosition };
   }
 
   @SubscribeMessage('movePlayer')
@@ -225,5 +320,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (gameState) {
       client.emit('gameState', gameState);
     }
+  }
+
+  // Méthode utilitaire pour envoyer un message système dans le chat
+  emitSystemMessage(roomId: string, content: string) {
+    const message = {
+      type: 'system',
+      roomId,
+      content,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.server.to(roomId).emit('message', message);
   }
 }

@@ -87,7 +87,9 @@ const stackPosition = computed(() => {
   pointer-events: auto;
   height: 24px;
   z-index: 100;
-  transition: all 0.3s ease-out;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              top 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              all 0.3s ease-out;
 
   &--expanded {
     z-index: 200; // Passer au premier plan

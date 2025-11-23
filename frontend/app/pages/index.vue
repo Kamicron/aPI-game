@@ -1,116 +1,226 @@
 <template>
-  <div>
-    <h1>Accueil</h1>
-    <button @click="handleRoll">lancer 2d6</button>
+  <div class="lobby">
+    <div class="lobby-container">
+      <h1 class="lobby-title">🎲 API Game</h1>
+      <p class="lobby-subtitle">Créez ou rejoignez une partie</p>
 
-    <div class="dice-list">
-      <DiceD6 v-for="(value, index) in diceValues" backgroundColor="#ffff00" :key="index"
-        :value="(value as 1 | 2 | 3 | 4 | 5 | 6)" :roll-id="rollId" />
-    </div>
+      <div class="lobby-content">
+        <!-- Créer une partie -->
+        <div class="lobby-card">
+          <h2 class="card-title">Créer une partie</h2>
+          <div class="form-group">
+            <label for="playerName">Votre pseudo</label>
+            <input 
+              id="playerName" 
+              v-model="playerName" 
+              type="text" 
+              placeholder="Entrez votre pseudo"
+              maxlength="20"
+            />
+          </div>
+          <button class="btn btn-primary" @click="createRoom" :disabled="!playerName.trim()">
+            Créer une partie
+          </button>
+        </div>
 
-    <div class="chat">
-      <h2>Chat de test</h2>
-      <div class="chat__status">Statut: {{ connected ? 'connecté' : 'déconnecté' }}</div>
-      <div class="chat__messages">
-        <div v-for="(msg, index) in messages" :key="index" class="chat__message" :class="`chat__message--${msg.type}`">
-          <span v-if="msg.type === 'user'" class="chat__author">{{ msg.authorId }}:</span>
-          <span class="chat__content">{{ msg.content }}</span>
+        <!-- Rejoindre une partie -->
+        <div class="lobby-card">
+          <h2 class="card-title">Rejoindre une partie</h2>
+          <div class="form-group">
+            <label for="joinPlayerName">Votre pseudo</label>
+            <input 
+              id="joinPlayerName" 
+              v-model="joinPlayerName" 
+              type="text" 
+              placeholder="Entrez votre pseudo"
+              maxlength="20"
+            />
+          </div>
+          <div class="form-group">
+            <label for="roomCode">Code de la partie</label>
+            <input 
+              id="roomCode" 
+              v-model="roomCode" 
+              type="text" 
+              placeholder="Ex: ABC123"
+              maxlength="6"
+              @input="roomCode = roomCode.toUpperCase()"
+            />
+          </div>
+          <button 
+            class="btn btn-secondary" 
+            @click="joinRoom" 
+            :disabled="!joinPlayerName.trim() || !roomCode.trim()"
+          >
+            Rejoindre
+          </button>
         </div>
       </div>
-      <form class="chat__form" @submit.prevent="handleSend">
-        <input v-model="draft" class="chat__input" type="text" placeholder="Écrire un message..." />
-        <button type="submit">Envoyer</button>
-      </form>
     </div>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import DiceD6 from '../components/dices/dice-d6.vue'
-import { useGameChat } from '../../composables/useGameChat'
 
-const { diceValues, rollId, roll: rollDice } = useRollDice()
+const playerName = ref('')
+const joinPlayerName = ref('')
+const roomCode = ref('')
 
-const roomId = ref('test-room-1')
-const playerId = ref(`guest-${Math.random().toString(36).slice(2, 8)}`)
-
-const { messages, connected, sendMessage, notifyRoll } = useGameChat(roomId, playerId)
-
-const draft = ref('')
-
-function handleSend() {
-  if (!draft.value.trim()) return
-  sendMessage(draft.value)
-  draft.value = ''
+function generateRoomCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
 }
 
-function handleRoll() {
-  rollDice(2, 6)
-  notifyRoll([...diceValues.value])
+async function createRoom() {
+  if (!playerName.value.trim()) return
+  
+  const newRoomCode = generateRoomCode()
+  const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
+  
+  // Stocker les infos dans le localStorage
+  localStorage.setItem('playerName', playerName.value)
+  localStorage.setItem('playerId', playerId)
+  localStorage.setItem('roomCode', newRoomCode)
+  
+  // Rediriger vers la page de jeu
+  await navigateTo(`/board?room=${newRoomCode}`)
+}
+
+async function joinRoom() {
+  if (!joinPlayerName.value.trim() || !roomCode.value.trim()) return
+  
+  const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
+  
+  // Stocker les infos dans le localStorage
+  localStorage.setItem('playerName', joinPlayerName.value)
+  localStorage.setItem('playerId', playerId)
+  localStorage.setItem('roomCode', roomCode.value)
+  
+  // Rediriger vers la page de jeu
+  await navigateTo(`/board?room=${roomCode.value}`)
 }
 </script>
 
 
 <style scoped lang="scss">
-h1 {
-  color: red;
-}
-
-.dice-list {
-  margin-top: 16px;
+.lobby {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
-.chat {
-  margin-top: 32px;
-  max-width: 480px;
-  border: 1px solid #ccc;
+.lobby-container {
+  max-width: 900px;
+  width: 100%;
+}
+
+.lobby-title {
+  font-size: 48px;
+  font-weight: 800;
+  color: white;
+  text-align: center;
+  margin: 0 0 8px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.lobby-subtitle {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  margin: 0 0 40px 0;
+}
+
+.lobby-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.lobby-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 24px 0;
+}
+
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+}
+
+.btn {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
   border-radius: 8px;
-  padding: 12px;
-}
-
-.chat__status {
-  font-size: 12px;
-  color: #555;
-  margin-bottom: 8px;
-}
-
-.chat__messages {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 8px;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  background: #fafafa;
-  margin-bottom: 8px;
-}
-
-.chat__message {
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.chat__message--system {
-  color: #555;
-  font-style: italic;
-}
-
-.chat__author {
+  font-size: 16px;
   font-weight: 600;
-  margin-right: 4px;
-}
+  cursor: pointer;
+  transition: all 0.2s;
 
-.chat__form {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-.chat__input {
-  flex: 1;
-  padding: 4px 8px;
+  &-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+  }
+
+  &-secondary {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    }
+  }
 }
 </style>

@@ -9,11 +9,8 @@
 
     <div class="board-layout">
       <div class="sidebar sidebar--left">
-        <GameStatus 
-          :current-player="currentGamePlayer" 
-          :players="gamePlayers" 
-          :current-turn-player-id="currentTurnPlayerId" 
-        />
+        <GameStatus :current-player="currentGamePlayer" :players="gamePlayers"
+          :current-turn-player-id="currentTurnPlayerId" />
       </div>
 
       <div class="main-content">
@@ -30,11 +27,15 @@
         </div>
 
         <div class="game-panel">
-          <button class="btn btn--primary" @click="handleRollDice">
+          <button class="btn btn--primary" @click="handleRollDice" :disabled="!isMyTurn"
+            :class="{ 'btn--disabled': !isMyTurn }">
             <span class="btn-icon">🎲</span>
-            <span>Lancer les dés</span>
+            <span>{{ isMyTurn ? 'Lancer les dés' : 'Pas votre tour' }}</span>
           </button>
           <DiceD6 v-if="lastDiceRoll" :value="lastDiceRoll" :roll-id="rollId" background-color="#6366f1" />
+          <div v-if="!isMyTurn && gameState" class="turn-info">
+            <span class="turn-waiting">⏳ En attente...</span>
+          </div>
         </div>
       </div>
 
@@ -45,7 +46,8 @@
             <span class="status-indicator" :class="{ 'status-indicator--connected': connected }"></span>
           </div>
           <div class="panel-content panel-content--chat" ref="chatMessagesEl">
-            <div v-for="(message, index) in chatMessages" :key="index" class="chat-message" :class="`chat-message--${message.type}`">
+            <div v-for="(message, index) in chatMessages" :key="index" class="chat-message"
+              :class="`chat-message--${message.type}`">
               <span v-if="message.type === 'user'" class="message-author">{{ message.authorId }}:</span>
               <span class="message-content">{{ message.content }}</span>
             </div>
@@ -110,16 +112,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue';
-import type { Board, Tile } from '../../../../composables/useBoard';
+import { computed, nextTick, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import type { Board, Tile } from '../../../composables/useBoard';
+import { useGameChat } from '../../../composables/useGameChat';
+import { useGameState } from '../../../composables/useGameState';
+import { useRollDice } from '../../../composables/useRollDice';
+import DiceD6 from '../dices/dice-d6.vue';
 import BoardTile from './BoardTile.vue';
+import GameStatus, { type GamePlayer } from './GameStatus.vue';
 import type { Player } from './PlayerPawn.vue';
 import PlayerStack from './PlayerStack.vue';
-import DiceD6 from '../dices/dice-d6.vue';
-import { useGameChat } from '../../../composables/useGameChat';
-import { useRollDice } from '../../../composables/useRollDice';
-import { useGameState } from '../../../composables/useGameState';
-import GameStatus, { type GamePlayer, type Bonus } from './GameStatus.vue';
 
 const props = defineProps<{
   board: Board
@@ -138,21 +141,25 @@ const lastMouseY = ref(0)
 
 const selectedTile = ref<Tile | null>(null)
 
+const route = useRoute()
 const { diceValues, rollId, roll: rollDice } = useRollDice()
 
-const roomId = ref('game-room-1')
-const playerId = ref(`player-${Math.random().toString(36).slice(2, 8)}`)
-const playerName = ref(`Joueur ${Math.floor(Math.random() * 1000)}`)
+// Récupérer les infos depuis l'URL et le localStorage
+const roomId = ref((route.query.room as string) || localStorage.getItem('roomCode') || 'game-room-1')
+const playerId = ref(localStorage.getItem('playerId') || `player-${Math.random().toString(36).slice(2, 8)}`)
+const playerName = ref(localStorage.getItem('playerName') || `Joueur ${Math.floor(Math.random() * 1000)}`)
 const playerColor = ref(['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#6366f1'][Math.floor(Math.random() * 5)])
 
 const { messages: chatMessages, connected: chatConnected, sendMessage: sendChatMessage, notifyRoll } = useGameChat(roomId, playerId)
 
 // Connexion au jeu via WebSocket
-const { 
-  connected: gameConnected, 
-  gameState, 
+const {
+  connected: gameConnected,
+  gameState,
   currentPlayer: realCurrentPlayer,
   isMyTurn,
+  lastDiceResult,
+  lastDicePlayerId,
   rollDice: rollGameDice,
   movePlayer
 } = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
@@ -179,16 +186,22 @@ const handleRollDice = () => {
     console.warn('Ce n\'est pas votre tour!')
     return
   }
-  
-  // Lancer les dés via WebSocket
+
+  // Lancer les dés via WebSocket (le serveur génère le résultat)
   rollGameDice()
-  
-  // Animation locale
-  rollDice(1, 6)
-  if (diceValues.value.length > 0) {
-    notifyRoll([...diceValues.value])
-  }
 }
+
+// Surveiller les événements de dés pour l'animation
+watch(lastDiceResult, (result) => {
+  if (result !== null && lastDicePlayerId.value === playerId.value) {
+    // Animer le dé SEULEMENT pour le joueur qui a lancé
+    diceValues.value = [result]
+    rollId.value++
+    
+    // Notifier dans le chat
+    notifyRoll([result])
+  }
+})
 
 const sendMessage = () => {
   if (!newMessage.value.trim()) return
@@ -232,61 +245,108 @@ const currentGamePlayer = computed(() => {
   return gamePlayers.value.find(p => p.id === playerId.value) || gamePlayers.value[0]!
 })
 
-const mockPlayers = ref<Player[]>([
-  {
-    id: '1',
-    name: 'Alice Martin',
-    color: '#FF6B6B',
-    avatar: 'https://i.pravatar.cc/150?img=1'
-  },
-  {
-    id: '2',
-    name: 'Bob Dupont',
-    color: '#4ECDC4'
-  },
-  {
-    id: '3',
-    name: 'Charlie Lee',
-    color: '#FFD93D',
-    avatar: 'https://i.pravatar.cc/150?img=3'
-  },
-  {
-    id: '4',
-    name: 'Diana Ross',
-    color: '#95E1D3'
-  },
-  {
-    id: '5',
-    name: 'Ethan Hunt',
-    color: '#A8E6CF',
-    avatar: 'https://i.pravatar.cc/150?img=5'
-  },
-  {
-    id: '6',
-    name: 'Frank Ocean',
-    color: '#F38181'
-  },
-  {
-    id: '7',
-    name: 'Grace Kelly',
-    color: '#AA96DA',
-    avatar: 'https://i.pravatar.cc/150?img=7'
-  },
-])
+// Positions animées des joueurs (pour l'animation étape par étape)
+const animatedPositions = ref<Map<string, number>>(new Map())
+const isAnimating = ref<Map<string, boolean>>(new Map())
 
-const playerPositions = ref<Map<number, Player[]>>(new Map([
-  [0, [mockPlayers.value[0]!, mockPlayers.value[1]!]],
-  [5, [mockPlayers.value[2]!, mockPlayers.value[3]!, mockPlayers.value[4]!, mockPlayers.value[5]!, mockPlayers.value[6]!]],
-  [10, [mockPlayers.value[0]!]],
-]))
+// Initialiser et surveiller les changements de position
+watch(gameState, (newState, oldState) => {
+  if (!newState) return
 
+  // Initialiser les positions pour les nouveaux joueurs
+  for (const player of newState.players) {
+    if (!animatedPositions.value.has(player.id)) {
+      animatedPositions.value.set(player.id, player.position)
+      isAnimating.value.set(player.id, false)
+    } else {
+      // Détecter les changements de position
+      const currentAnimatedPos = animatedPositions.value.get(player.id)!
+      const isCurrentlyAnimating = isAnimating.value.get(player.id) || false
+      
+      // Animer seulement si la position a changé et qu'on n'est pas déjà en train d'animer
+      if (player.position !== currentAnimatedPos && !isCurrentlyAnimating) {
+        animatePlayerMovement(player.id, currentAnimatedPos, player.position)
+      }
+    }
+  }
+}, { immediate: true, deep: true })
+
+// Fonction pour animer le déplacement avec une animation fluide
+const animatePlayerMovement = (playerId: string, fromPos: number, toPos: number) => {
+  const boardSize = gameState.value?.boardSize || 50
+
+  // Marquer comme en cours d'animation
+  isAnimating.value.set(playerId, true)
+
+  // Calculer le chemin (gérer le plateau circulaire)
+  let steps = toPos - fromPos
+  if (steps < 0) {
+    steps += boardSize // Gérer le retour au début
+  }
+
+  if (steps === 0) {
+    isAnimating.value.set(playerId, false)
+    return
+  }
+
+  // Animation fluide avec requestAnimationFrame
+  const duration = steps * 250 // 250ms par case
+  const startTime = Date.now()
+
+  const animate = () => {
+    const elapsed = Date.now() - startTime
+    const progress = Math.min(elapsed / duration, 1)
+
+    // Fonction d'easing pour une animation plus naturelle
+    const easeInOutCubic = (t: number) => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+    }
+
+    const easedProgress = easeInOutCubic(progress)
+    const currentStep = easedProgress * steps
+    const currentPos = (fromPos + Math.floor(currentStep)) % boardSize
+
+    animatedPositions.value.set(playerId, currentPos)
+
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    } else {
+      // S'assurer que la position finale est exacte
+      animatedPositions.value.set(playerId, toPos)
+      isAnimating.value.set(playerId, false)
+    }
+  }
+
+  requestAnimationFrame(animate)
+}
+
+// Mapper les positions animées aux tuiles du plateau
 const playersByTile = computed(() => {
   const result = new Map<number, Player[]>()
 
-  for (const [tileId, players] of playerPositions.value.entries()) {
+  if (!gameState.value || gameState.value.players.length === 0) {
+    return result
+  }
+
+  // Grouper les joueurs par position animée
+  for (const player of gameState.value.players) {
+    const tileId = animatedPositions.value.get(player.id) || player.position
     const tile = props.board.tiles.find((t: Tile) => t.id === tileId)
-    if (tile && players.length > 0) {
-      result.set(tileId, players)
+
+    if (tile) {
+      const displayPlayer: Player = {
+        id: player.id,
+        name: player.name,
+        color: player.color,
+        avatar: player.avatar
+      }
+
+      if (!result.has(tileId)) {
+        result.set(tileId, [])
+      }
+      result.get(tileId)!.push(displayPlayer)
+    } else {
+      console.warn(`Tile ${tileId} not found for player ${player.name}. Available tiles:`, props.board.tiles.map((t: Tile) => t.id))
     }
   }
 
@@ -519,7 +579,7 @@ const getTileDescription = (tile: Tile) => {
 .board-canvas {
   position: relative;
   width: 800px;
-  height: 800px;
+  height: 500px;
 }
 
 .board-layout {
@@ -535,11 +595,11 @@ const getTileDescription = (tile: Tile) => {
   gap: 12px;
   height: 100%;
   overflow-y: auto;
-  
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #d1d5db;
     border-radius: 3px;
@@ -602,18 +662,29 @@ const getTileDescription = (tile: Tile) => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &--primary {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
     color: white;
     box-shadow: var(--shadow-sm);
-    
-    &:hover {
+
+    &:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
     }
   }
-  
+
+  &--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #9ca3af !important;
+
+    &:hover {
+      transform: none !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+  }
+
   &--icon {
     width: 44px;
     height: 44px;
@@ -621,11 +692,23 @@ const getTileDescription = (tile: Tile) => {
     background: var(--primary-color);
     color: white;
     font-size: 18px;
-    
+
     &:hover {
       background: var(--primary-hover);
     }
   }
+}
+
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.turn-waiting {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .btn-icon {
@@ -645,7 +728,7 @@ const getTileDescription = (tile: Tile) => {
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.3);
   }
@@ -659,7 +742,7 @@ const getTileDescription = (tile: Tile) => {
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
-  
+
   &:focus {
     border-color: var(--primary-color);
   }
@@ -682,7 +765,7 @@ const getTileDescription = (tile: Tile) => {
   height: 8px;
   border-radius: 50%;
   background: #ef4444;
-  
+
   &--connected {
     background: #10b981;
   }
@@ -697,6 +780,7 @@ const getTileDescription = (tile: Tile) => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -835,11 +919,11 @@ const getTileDescription = (tile: Tile) => {
   flex-direction: column;
   gap: 6px;
   background: var(--bg-secondary);
-  
+
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #d1d5db;
     border-radius: 3px;
@@ -865,7 +949,7 @@ const getTileDescription = (tile: Tile) => {
     border-color: #fbbf24;
     font-style: italic;
     color: var(--text-secondary);
-    
+
     &:hover {
       background: #fef3c7;
       border-color: #f59e0b;
