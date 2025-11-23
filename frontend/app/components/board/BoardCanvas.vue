@@ -128,7 +128,6 @@ const size = 600
 const tileSize = 64
 const offset = 40
 
-// Zoom et pan
 const zoom = ref(1)
 const panX = ref(0)
 const panY = ref(0)
@@ -315,28 +314,23 @@ const resetZoom = () => {
   panY.value = 0
 }
 
-// Zoom avec la molette (centré sur la position de la souris)
 const handleWheel = (e: WheelEvent) => {
   const delta = e.deltaY > 0 ? -0.1 : 0.1
   const newZoom = Math.max(0.5, Math.min(3, zoom.value + delta))
 
-  // Position de la souris par rapport au container
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const mouseX = e.clientX - rect.left
   const mouseY = e.clientY - rect.top
 
-  // Calculer le point sous la souris avant le zoom
   const pointX = (mouseX - panX.value * zoom.value) / zoom.value
   const pointY = (mouseY - panY.value * zoom.value) / zoom.value
 
-  // Ajuster le pan pour que le point reste sous la souris après le zoom
   panX.value = (mouseX - pointX * newZoom) / newZoom
   panY.value = (mouseY - pointY * newZoom) / newZoom
 
   zoom.value = newZoom
 }
 
-// Pan avec la souris
 const startPan = (e: MouseEvent) => {
   isPanning.value = true
   lastMouseX.value = e.clientX
@@ -360,33 +354,25 @@ const endPan = () => {
   isPanning.value = false
 }
 
-// Centrer et zoomer sur une tuile
 const focusTile = (tile: Tile, x: number, y: number) => {
-  // Empêcher le focus si on est en train de déplacer
   if (isPanning.value) return
 
-  // Sélectionner la tuile
   selectedTile.value = tile
 
-  // Position de la tuile dans le canvas
   const tileCenterX = offset + x * tileSize + tileSize / 2
   const tileCenterY = offset + y * tileSize + tileSize / 2
 
-  // Zoomer à 2x
   const targetZoom = 2
 
-  // Centre du container
   const containerCenterX = 400
   const containerCenterY = 400
 
-  // Calculer le pan pour centrer la tuile
   panX.value = (containerCenterX - tileCenterX * targetZoom) / targetZoom
   panY.value = (containerCenterY - tileCenterY * targetZoom) / targetZoom
 
   zoom.value = targetZoom
 }
 
-// Fonctions helper pour les infos de tuile
 const getTileTitle = (tile: Tile) => {
   const titles: Record<string, string> = {
     start: '🏁 Case Départ',
