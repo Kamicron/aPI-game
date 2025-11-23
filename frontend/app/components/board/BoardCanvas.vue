@@ -60,6 +60,8 @@
 import { computed, ref } from 'vue';
 import type { Board, Tile } from '../../../../composables/useBoard';
 import BoardTile from './BoardTile.vue';
+import PlayerStack from './PlayerStack.vue';
+import type { Player } from './PlayerPawn.vue';
 
 const props = defineProps<{
   board: Board
@@ -79,6 +81,76 @@ const lastMouseY = ref(0)
 
 // Tuile sélectionnée
 const selectedTile = ref<Tile | null>(null)
+
+// Données mockées des joueurs (à remplacer par WebSocket plus tard)
+const mockPlayers = ref<Player[]>([
+  { 
+    id: '1', 
+    name: 'Alice Martin', 
+    color: '#FF6B6B',
+    avatar: 'https://i.pravatar.cc/150?img=1' // Exemple avec photo
+  },
+  { 
+    id: '2', 
+    name: 'Bob Dupont', 
+    color: '#4ECDC4' // Sans photo = initiales
+  },
+  { 
+    id: '3', 
+    name: 'Charlie Lee', 
+    color: '#FFD93D',
+    avatar: 'https://i.pravatar.cc/150?img=3'
+  },
+  { 
+    id: '4', 
+    name: 'Diana Ross', 
+    color: '#95E1D3'
+  },
+  { 
+    id: '5', 
+    name: 'Ethan Hunt', 
+    color: '#A8E6CF',
+    avatar: 'https://i.pravatar.cc/150?img=5'
+  },
+  { 
+    id: '6', 
+    name: 'Frank Ocean', 
+    color: '#F38181'
+  },
+  { 
+    id: '7', 
+    name: 'Grace Kelly', 
+    color: '#AA96DA',
+    avatar: 'https://i.pravatar.cc/150?img=7'
+  },
+])
+
+// Position des joueurs (tileId -> Player[])
+const playerPositions = ref<Map<number, Player[]>>(new Map([
+  [0, [mockPlayers.value[0]!, mockPlayers.value[1]!]], // 2 joueurs sur la case départ
+  [5, [mockPlayers.value[2]!, mockPlayers.value[3]!, mockPlayers.value[4]!, mockPlayers.value[5]!, mockPlayers.value[6]!]], // 5 joueurs (3 visibles + badge "+2")
+  [10, [mockPlayers.value[0]!]], // 1 joueur
+]))
+
+// Grouper les joueurs par position pour l'affichage
+const playersByTile = computed(() => {
+  const result = new Map<number, Player[]>()
+  
+  for (const [tileId, players] of playerPositions.value.entries()) {
+    const tile = props.board.tiles.find((t: Tile) => t.id === tileId)
+    if (tile && players.length > 0) {
+      result.set(tileId, players)
+    }
+  }
+  
+  return result
+})
+
+// Joueurs sur la tuile sélectionnée
+const playersOnSelectedTile = computed(() => {
+  if (!selectedTile.value) return []
+  return playersByTile.value.get(selectedTile.value.id) || []
+})
 
 const canvasStyle = computed(() => ({
   transform: `scale(${zoom.value}) translate(${panX.value}px, ${panY.value}px)`,
