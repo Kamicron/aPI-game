@@ -438,11 +438,33 @@ const getTileDescription = (tile: Tile) => {
 </script>
 
 <style scoped lang="scss">
+:root {
+  --primary-color: #6366f1;
+  --primary-hover: #4f46e5;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
 .board-canvas-wrapper {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 16px 0;
+  padding: 16px;
+  background: var(--bg-secondary);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .board-canvas-controls {
@@ -490,10 +512,10 @@ const getTileDescription = (tile: Tile) => {
 
 .board-canvas-container {
   position: relative;
-  width: 1200px;
-  height: 700px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   background: #f5f5f5;
   overflow: hidden;
   cursor: grab;
