@@ -70,10 +70,11 @@ const handleClick = () => {
   justify-content: center;
   cursor: pointer;
   transition: transform 0.2s;
+  z-index: 1;
 
   &:hover {
     transform: scale(1.1);
-    z-index: 10;
+    z-index: 50; // En dessous des pions (z-index: 100)
   }
 }
 
