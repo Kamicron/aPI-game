@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ChatModule } from './chat/chat.module';
 import { BoardModule } from './board/board.module';
+import { GameModule } from './game/game.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BoardModule } from './board/board.module';
     }),
     ChatModule,
     BoardModule,
+    GameModule,
   ],
   controllers: [AppController],
   providers: [AppService],
