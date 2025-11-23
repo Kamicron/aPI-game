@@ -198,8 +198,7 @@ watch(lastDiceResult, (result) => {
     diceValues.value = [result]
     rollId.value++
     
-    // Notifier dans le chat
-    notifyRoll([result])
+    // Ne pas notifier dans le chat ici - le message système de l'effet sera plus informatif
   }
 })
 

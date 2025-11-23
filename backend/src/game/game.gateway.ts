@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Injectable } from '@nestjs/common';
 import { BoardService } from '../board/board.service';
+import { TileEffectsService } from './tile-effects.service';
 
 export interface Player {
   id: string;
@@ -24,6 +25,7 @@ export interface Player {
 
 export interface Bonus {
   id: string;
+  type: 'double_dice' | 'extra_turn' | 'shield' | 'teleport';
   name: string;
   icon: string;
   effect: string;
@@ -74,7 +76,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Map pour tracker quel client est dans quelle room et quel joueur
   private clientToPlayer: Map<string, { roomId: string; playerId: string }> = new Map();
 
-  constructor(private readonly boardService: BoardService) {}
+  constructor(
+    private readonly boardService: BoardService,
+    private readonly tileEffectsService: TileEffectsService,
+  ) {}
 
   handleConnection(client: Socket) {
     console.log('Client connected to game:', client.id);
@@ -168,8 +173,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         name: playerName,
         color: playerColor,
         position: 0,
-        coins: 150,
-        keys: 3,
+        coins: 0,
+        keys: 0,
         bonuses: [],
       };
       
@@ -257,7 +262,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Mettre à jour la position du joueur
     player.position = newPosition;
 
-    // TODO: Appliquer les effets de la tuile
+    // Appliquer les effets de la tuile
+    const tile = gameState.board?.tiles.find(t => t.id === newPosition);
+    let tileEffect = null;
+    
+    if (tile) {
+      tileEffect = this.tileEffectsService.applyTileEffect(player, tile, diceResult);
+      console.log(`Tile effect applied:`, tileEffect);
+    }
 
     // Passer au joueur suivant
     const currentIndex = gameState.players.findIndex(p => p.id === playerId);
@@ -270,10 +282,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       result: diceResult,
       newPosition,
       nextPlayerId: gameState.currentTurnPlayerId,
+      tileEffect, // Envoyer l'effet de la tuile
     });
 
     // Envoyer l'état mis à jour
     this.server.to(roomId).emit('gameState', gameState);
+    
+    this.server.to(roomId).emit('playerMoved', {
+      playerId,
+      position: newPosition,
+      nextPlayerId: gameState.currentTurnPlayerId,
+      tileEffect, // Envoyer l'effet de la tuile
+    });
+    
+    // Envoyer un message dans le chat si l'effet a un message
+    if (tileEffect?.message) {
+      this.emitSystemMessage(roomId, tileEffect.message);
+    }
 
     return { result: diceResult, newPosition };
   }
