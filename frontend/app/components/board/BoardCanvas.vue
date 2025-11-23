@@ -13,6 +13,11 @@
         <div class="board-canvas" :style="canvasStyle">
           <BoardTile v-for="tile in board.tiles" :key="tile.id" :tile="tile" :left="offset + tile.x * tileSize"
             :top="offset + tile.y * tileSize" @click="focusTile" />
+
+          <!-- Afficher les pions des joueurs -->
+          <PlayerStack v-for="[tileId, players] in playersByTile" :key="`stack-${tileId}`" :players="players"
+            :tile-x="board.tiles.find((t: Tile) => t.id === tileId)!.x"
+            :tile-y="board.tiles.find((t: Tile) => t.id === tileId)!.y" :tile-size="tileSize" :offset="offset" />
         </div>
       </div>
 
