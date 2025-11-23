@@ -54,6 +54,21 @@
             <div class="tile-info-description">
               {{ getTileDescription(selectedTile) }}
             </div>
+
+            <!-- Liste des joueurs sur cette tuile -->
+            <div v-if="playersOnSelectedTile.length > 0" class="tile-info-players">
+              <h4>Joueurs sur cette case :</h4>
+              <div class="player-list">
+                <div 
+                  v-for="player in playersOnSelectedTile" 
+                  :key="player.id"
+                  class="player-item"
+                >
+                  <div class="player-color" :style="{ backgroundColor: player.color }"></div>
+                  <span class="player-name">{{ player.name }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -499,5 +514,53 @@ const getTileDescription = (tile: Tile) => {
   line-height: 1.5;
   color: #555;
   margin-top: 8px;
+}
+
+.tile-info-players {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+
+  h4 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+  }
+}
+
+.player-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+}
+
+.player-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.player-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }
 </style>
