@@ -8,64 +8,97 @@
     </div>
 
     <div class="board-layout">
-      <div class="board-canvas-container" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan"
-        @mouseup="endPan" @mouseleave="endPan">
-        <div class="board-canvas" :style="canvasStyle">
-          <BoardTile v-for="tile in board.tiles" :key="tile.id" :tile="tile" :left="offset + tile.x * tileSize"
-            :top="offset + tile.y * tileSize" @click="focusTile" />
+      <div class="sidebar sidebar--left">
+        <GameStatus 
+          :current-player="currentGamePlayer" 
+          :players="gamePlayers" 
+          :current-turn-player-id="currentTurnPlayerId" 
+        />
+      </div>
 
-          <!-- Afficher les pions des joueurs -->
-          <PlayerStack v-for="[tileId, players] in playersByTile" :key="`stack-${tileId}`" :players="players"
-            :tile-x="board.tiles.find((t: Tile) => t.id === tileId)!.x"
-            :tile-y="board.tiles.find((t: Tile) => t.id === tileId)!.y" :tile-size="tileSize" :offset="offset" />
+      <div class="main-content">
+        <div class="board-canvas-container" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan"
+          @mouseup="endPan" @mouseleave="endPan">
+          <div class="board-canvas" :style="canvasStyle">
+            <BoardTile v-for="tile in board.tiles" :key="tile.id" :tile="tile" :left="offset + tile.x * tileSize"
+              :top="offset + tile.y * tileSize" @click="focusTile" />
+
+            <PlayerStack v-for="[tileId, players] in playersByTile" :key="`stack-${tileId}`" :players="players"
+              :tile-x="board.tiles.find((t: Tile) => t.id === tileId)!.x"
+              :tile-y="board.tiles.find((t: Tile) => t.id === tileId)!.y" :tile-size="tileSize" :offset="offset" />
+          </div>
+        </div>
+
+        <div class="game-panel">
+          <button class="btn btn--primary" @click="handleRollDice">
+            <span class="btn-icon">🎲</span>
+            <span>Lancer les dés</span>
+          </button>
+          <DiceD6 v-if="lastDiceRoll" :value="lastDiceRoll" :roll-id="rollId" background-color="#6366f1" />
         </div>
       </div>
 
-      <!-- Panneau d'information de la tuile -->
-      <div v-if="selectedTile" class="tile-info-panel">
-        <div class="tile-info-header">
-          <h3>{{ getTileTitle(selectedTile) }}</h3>
-          <button @click="selectedTile = null" class="close-btn">×</button>
+      <div class="sidebar sidebar--right">
+        <div class="panel panel--chat">
+          <div class="panel-header">
+            <h3 class="panel-title">💬 Chat</h3>
+            <span class="status-indicator" :class="{ 'status-indicator--connected': connected }"></span>
+          </div>
+          <div class="panel-content panel-content--chat" ref="chatMessagesEl">
+            <div v-for="(message, index) in chatMessages" :key="index" class="chat-message" :class="`chat-message--${message.type}`">
+              <span v-if="message.type === 'user'" class="message-author">{{ message.authorId }}:</span>
+              <span class="message-content">{{ message.content }}</span>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <input v-model="newMessage" @keyup.enter="sendMessage" type="text" placeholder="Envoyer un message..."
+              class="input" />
+            <button @click="sendMessage" class="btn btn--icon">
+              ➤
+            </button>
+          </div>
         </div>
 
-        <div class="tile-info-content">
-          <div class="tile-info-image">
-            <img :src="getTileImage(selectedTile)" :alt="selectedTile.kind" />
+        <div v-if="selectedTile" class="panel panel--tile-info">
+          <div class="panel-header">
+            <h3 class="panel-title">{{ getTileTitle(selectedTile) }}</h3>
+            <button @click="selectedTile = null" class="btn-close">×</button>
           </div>
 
-          <div class="tile-info-details">
-            <div class="tile-info-row">
-              <span class="label">Type :</span>
-              <span class="value">{{ getTileTypeName(selectedTile) }}</span>
+          <div class="panel-content">
+            <div class="tile-info-image">
+              <img :src="getTileImage(selectedTile)" :alt="selectedTile.kind" />
             </div>
 
-            <div v-if="selectedTile.coinsChange" class="tile-info-row">
-              <span class="label">Pièces :</span>
-              <span class="value" :class="selectedTile.coinsChange > 0 ? 'positive' : 'negative'">
-                {{ selectedTile.coinsChange > 0 ? '+' : '' }}{{ selectedTile.coinsChange }}
-              </span>
-            </div>
+            <div class="tile-info-details">
+              <div class="tile-info-row">
+                <span class="label">Type :</span>
+                <span class="value">{{ getTileTypeName(selectedTile) }}</span>
+              </div>
 
-            <div v-if="selectedTile.keyPrice" class="tile-info-row">
-              <span class="label">Prix :</span>
-              <span class="value">{{ selectedTile.keyPrice }} pièces</span>
-            </div>
+              <div v-if="selectedTile.coinsChange" class="tile-info-row">
+                <span class="label">Pièces :</span>
+                <span class="value" :class="selectedTile.coinsChange > 0 ? 'positive' : 'negative'">
+                  {{ selectedTile.coinsChange > 0 ? '+' : '' }}{{ selectedTile.coinsChange }}
+                </span>
+              </div>
 
-            <div class="tile-info-description">
-              {{ getTileDescription(selectedTile) }}
-            </div>
+              <div v-if="selectedTile.keyPrice" class="tile-info-row">
+                <span class="label">Prix :</span>
+                <span class="value">{{ selectedTile.keyPrice }} pièces</span>
+              </div>
 
-            <!-- Liste des joueurs sur cette tuile -->
-            <div v-if="playersOnSelectedTile.length > 0" class="tile-info-players">
-              <h4>Joueurs sur cette case :</h4>
-              <div class="player-list">
-                <div 
-                  v-for="player in playersOnSelectedTile" 
-                  :key="player.id"
-                  class="player-item"
-                >
-                  <div class="player-color" :style="{ backgroundColor: player.color }"></div>
-                  <span class="player-name">{{ player.name }}</span>
+              <div class="tile-info-description">
+                {{ getTileDescription(selectedTile) }}
+              </div>
+
+              <div v-if="playersOnSelectedTile.length > 0" class="tile-info-players">
+                <h4>Joueurs sur cette case :</h4>
+                <div class="player-list">
+                  <div v-for="player in playersOnSelectedTile" :key="player.id" class="player-item">
+                    <div class="player-color" :style="{ backgroundColor: player.color }"></div>
+                    <span class="player-name">{{ player.name }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -77,11 +110,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import type { Board, Tile } from '../../../../composables/useBoard';
 import BoardTile from './BoardTile.vue';
-import PlayerStack from './PlayerStack.vue';
 import type { Player } from './PlayerPawn.vue';
+import PlayerStack from './PlayerStack.vue';
+import DiceD6 from '../dices/dice-d6.vue';
+import { useGameChat } from '../../../composables/useGameChat';
+import { useRollDice } from '../../../composables/useRollDice';
+import GameStatus, { type GamePlayer, type Bonus } from './GameStatus.vue';
 
 const props = defineProps<{
   board: Board
@@ -99,74 +136,159 @@ const isPanning = ref(false)
 const lastMouseX = ref(0)
 const lastMouseY = ref(0)
 
-// Tuile sélectionnée
 const selectedTile = ref<Tile | null>(null)
 
-// Données mockées des joueurs (à remplacer par WebSocket plus tard)
-const mockPlayers = ref<Player[]>([
-  { 
-    id: '1', 
-    name: 'Alice Martin', 
+const { diceValues, rollId, roll: rollDice } = useRollDice()
+
+const roomId = ref('game-room-1')
+const playerId = ref(`player-${Math.random().toString(36).slice(2, 8)}`)
+
+const { messages: chatMessages, connected, sendMessage: sendChatMessage, notifyRoll } = useGameChat(roomId, playerId)
+
+const newMessage = ref('')
+const chatMessagesEl = ref<HTMLElement | null>(null)
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatMessagesEl.value) {
+      chatMessagesEl.value.scrollTop = chatMessagesEl.value.scrollHeight
+    }
+  })
+}
+
+watch(chatMessages, () => {
+  scrollToBottom()
+}, { deep: true })
+
+const handleRollDice = () => {
+  rollDice(1, 6)
+  if (diceValues.value.length > 0) {
+    notifyRoll([...diceValues.value])
+  }
+}
+
+const sendMessage = () => {
+  if (!newMessage.value.trim()) return
+  sendChatMessage(newMessage.value)
+  newMessage.value = ''
+}
+
+const lastDiceRoll = computed(() => {
+  if (diceValues.value.length > 0) {
+    return diceValues.value[0] as 1 | 2 | 3 | 4 | 5 | 6
+  }
+  return null
+})
+
+const currentTurnPlayerId = ref('1')
+
+const gamePlayers = ref<GamePlayer[]>([
+  {
+    id: '1',
+    name: 'Alice Martin',
     color: '#FF6B6B',
-    avatar: 'https://i.pravatar.cc/150?img=1' // Exemple avec photo
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    coins: 150,
+    keys: 3,
+    bonuses: [
+      { id: 'b1', name: 'Double pièces', icon: '⭐' },
+      { id: 'b2', name: 'Protection', icon: '🛡️' }
+    ]
   },
-  { 
-    id: '2', 
-    name: 'Bob Dupont', 
-    color: '#4ECDC4' // Sans photo = initiales
+  {
+    id: '2',
+    name: 'Bob Dupont',
+    color: '#4ECDC4',
+    coins: 120,
+    keys: 2,
+    bonuses: []
   },
-  { 
-    id: '3', 
-    name: 'Charlie Lee', 
+  {
+    id: '3',
+    name: 'Charlie Lee',
+    color: '#FFD93D',
+    avatar: 'https://i.pravatar.cc/150?img=3',
+    coins: 180,
+    keys: 2,
+    bonuses: [
+      { id: 'b3', name: 'Vitesse x2', icon: '⚡' }
+    ]
+  },
+  {
+    id: '4',
+    name: 'Diana Ross',
+    color: '#95E1D3',
+    coins: 90,
+    keys: 1,
+    bonuses: []
+  }
+])
+
+const currentGamePlayer = computed(() => {
+  return gamePlayers.value.find(p => p.id === playerId.value) || gamePlayers.value[0]!
+})
+
+const mockPlayers = ref<Player[]>([
+  {
+    id: '1',
+    name: 'Alice Martin',
+    color: '#FF6B6B',
+    avatar: 'https://i.pravatar.cc/150?img=1'
+  },
+  {
+    id: '2',
+    name: 'Bob Dupont',
+    color: '#4ECDC4'
+  },
+  {
+    id: '3',
+    name: 'Charlie Lee',
     color: '#FFD93D',
     avatar: 'https://i.pravatar.cc/150?img=3'
   },
-  { 
-    id: '4', 
-    name: 'Diana Ross', 
+  {
+    id: '4',
+    name: 'Diana Ross',
     color: '#95E1D3'
   },
-  { 
-    id: '5', 
-    name: 'Ethan Hunt', 
+  {
+    id: '5',
+    name: 'Ethan Hunt',
     color: '#A8E6CF',
     avatar: 'https://i.pravatar.cc/150?img=5'
   },
-  { 
-    id: '6', 
-    name: 'Frank Ocean', 
+  {
+    id: '6',
+    name: 'Frank Ocean',
     color: '#F38181'
   },
-  { 
-    id: '7', 
-    name: 'Grace Kelly', 
+  {
+    id: '7',
+    name: 'Grace Kelly',
     color: '#AA96DA',
     avatar: 'https://i.pravatar.cc/150?img=7'
   },
 ])
 
-// Position des joueurs (tileId -> Player[])
 const playerPositions = ref<Map<number, Player[]>>(new Map([
-  [0, [mockPlayers.value[0]!, mockPlayers.value[1]!]], // 2 joueurs sur la case départ
-  [5, [mockPlayers.value[2]!, mockPlayers.value[3]!, mockPlayers.value[4]!, mockPlayers.value[5]!, mockPlayers.value[6]!]], // 5 joueurs (3 visibles + badge "+2")
-  [10, [mockPlayers.value[0]!]], // 1 joueur
+  [0, [mockPlayers.value[0]!, mockPlayers.value[1]!]],
+  [5, [mockPlayers.value[2]!, mockPlayers.value[3]!, mockPlayers.value[4]!, mockPlayers.value[5]!, mockPlayers.value[6]!]],
+  [10, [mockPlayers.value[0]!]],
 ]))
 
-// Grouper les joueurs par position pour l'affichage
 const playersByTile = computed(() => {
   const result = new Map<number, Player[]>()
-  
+
   for (const [tileId, players] of playerPositions.value.entries()) {
     const tile = props.board.tiles.find((t: Tile) => t.id === tileId)
     if (tile && players.length > 0) {
       result.set(tileId, players)
     }
   }
-  
+
   return result
 })
 
-// Joueurs sur la tuile sélectionnée
 const playersOnSelectedTile = computed(() => {
   if (!selectedTile.value) return []
   return playersByTile.value.get(selectedTile.value.id) || []
