@@ -59,6 +59,15 @@
         />
       </div>
     </div>
+
+    <!-- Mini-game Overlay -->
+    <MinigameOverlay
+      :is-open="isMinigameOpen"
+      :player-info="playerInfo"
+      :results="minigameResultsFromState"
+      @close="closeMinigame"
+      @submit-score="handleSubmitScore"
+    />
   </div>
 </template>
 
@@ -77,6 +86,8 @@ import BonusPanel from './BonusPanel.vue';
 import GameControls from './GameControls.vue';
 import ChatPanel from './ChatPanel.vue';
 import TileInfoPanel from './TileInfoPanel.vue';
+import MinigameOverlay from './minigames/MinigameOverlay.vue';
+import type { MinigameResult } from './minigames/MinigameResults.vue';
 
 const props = defineProps<{
   board: Board
@@ -108,12 +119,17 @@ const { messages: chatMessages, connected: chatConnected, sendMessage: sendChatM
 
 // Connexion au jeu via WebSocket
 const {
+  socket,
   connected: gameConnected,
   gameState,
   currentPlayer: realCurrentPlayer,
   isMyTurn,
   lastDiceResult,
   lastDicePlayerId,
+  lastTileEffect,
+  minigameActive,
+  minigameType,
+  minigameResults: minigameResultsFromState,
   rollDice: rollGameDice,
   movePlayer,
   buyKey,
@@ -121,6 +137,14 @@ const {
 } = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
 
 const connected = computed(() => chatConnected.value && gameConnected.value)
+
+// Mini-game state
+const isMinigameOpen = ref(false)
+const playerInfo = computed(() => ({
+  id: playerId.value,
+  name: playerName.value,
+  color: playerColor.value || '#6366f1'
+}))
 
 const handleRollDice = () => {
   if (!isMyTurn.value) {
@@ -130,11 +154,59 @@ const handleRollDice = () => {
   rollGameDice()
 }
 
+const closeMinigame = () => {
+  isMinigameOpen.value = false
+}
+
+const handleSubmitScore = (score: number) => {
+  console.log('🎮 Submitting score:', score)
+  
+  // Envoyer le score au backend
+  if (gameConnected.value && socket.value) {
+    socket.value.emit('minigameScore', {
+      roomId: roomId.value,
+      playerId: playerId.value,
+      score: score
+    })
+  }
+}
+
 // Surveiller les événements de dés pour l'animation
 watch(lastDiceResult, (result) => {
   if (result !== null && lastDicePlayerId.value === playerId.value) {
     diceValues.value = [result]
     rollId.value++
+  }
+})
+
+// Surveiller les effets de tuiles pour démarrer le mini-jeu (seulement pour l'initiateur)
+watch(lastTileEffect, (effect) => {
+  console.log('🎮 lastTileEffect changed:', effect)
+  if (effect && effect.type === 'minigame') {
+    console.log('🎮 Starting minigame for everyone!')
+    // L'initiateur démarre le mini-jeu pour tous les joueurs
+    if (socket.value) {
+      socket.value.emit('minigameStart', {
+        roomId: roomId.value,
+        playerId: playerId.value,
+        gameType: 'reaction' // Pour l'instant, toujours le jeu de réflexes
+      })
+    }
+  }
+})
+
+// Surveiller l'activation du mini-jeu (pour TOUS les joueurs)
+watch(minigameActive, (active) => {
+  console.log('🎮 minigameActive changed:', active)
+  if (active) {
+    console.log('🎮 Opening minigame overlay for all players!')
+    isMinigameOpen.value = true
+  } else {
+    console.log('🎮 Closing minigame overlay')
+    // Fermer l'overlay après un délai pour voir les résultats
+    setTimeout(() => {
+      isMinigameOpen.value = false
+    }, 5000)
   }
 })
 

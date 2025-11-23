@@ -44,6 +44,10 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
   const gameState = ref<GameState | null>(null)
   const lastDiceResult = ref<number | null>(null)
   const lastDicePlayerId = ref<string | null>(null)
+  const lastTileEffect = ref<{ type: string; message: string } | null>(null)
+  const minigameActive = ref(false)
+  const minigameType = ref<string | null>(null)
+  const minigameResults = ref<any[] | null>(null)
   
   const currentPlayer = computed(() => {
     return gameState.value?.players.find(p => p.id === playerId) || null
@@ -94,16 +98,53 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
       // Le gameState sera mis à jour automatiquement
     })
 
-    socket.value.on('diceRolled', (data: { playerId: string; result: number; newPosition: number; nextPlayerId: string }) => {
+    socket.value.on('diceRolled', (data: { playerId: string; result: number; newPosition: number; nextPlayerId: string; tileEffect?: any }) => {
       console.log('Dice rolled:', data)
       // Stocker le résultat du dé et l'ID du joueur
       lastDiceResult.value = data.result
       lastDicePlayerId.value = data.playerId
+      
+      // Vérifier si c'est notre joueur et s'il y a un effet de tuile
+      if (data.playerId === playerId && data.tileEffect) {
+        console.log('Tile effect detected:', data.tileEffect)
+        // Utiliser le type de tuile directement
+        if (data.tileEffect.tileType === 'minigame') {
+          lastTileEffect.value = { type: 'minigame', message: data.tileEffect.message || 'Mini-jeu !' }
+        }
+      }
+      
       // L'état du jeu sera mis à jour via l'événement 'gameState'
     })
 
     socket.value.on('playerMoved', (data: { playerId: string; position: number; nextPlayerId: string }) => {
       console.log('Player moved:', data)
+    })
+
+    socket.value.on('tileEffect', (data: { playerId: string; tileType: string; message: string }) => {
+      console.log('Tile effect:', data)
+      if (data.playerId === playerId) {
+        lastTileEffect.value = { type: data.tileType, message: data.message }
+      }
+    })
+
+    socket.value.on('minigameStarted', (data: { gameType: string; initiatorId: string; initiatorName: string }) => {
+      console.log('🎮 Minigame started for everyone:', data)
+      minigameActive.value = true
+      minigameType.value = data.gameType
+    })
+
+    socket.value.on('minigamePlayerFinished', (data: { playerId: string; playerName: string; finishedCount: number; totalPlayers: number }) => {
+      console.log('🎮 Player finished minigame:', data)
+    })
+
+    socket.value.on('minigameResults', (data: any[]) => {
+      console.log('🎮 Minigame results received:', data)
+      minigameResults.value = data
+      // Réinitialiser après un délai
+      setTimeout(() => {
+        minigameActive.value = false
+        minigameResults.value = null
+      }, 6000)
     })
 
     socket.value.on('connect_error', (error) => {
@@ -166,6 +207,10 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     isMyTurn,
     lastDiceResult,
     lastDicePlayerId,
+    lastTileEffect,
+    minigameActive,
+    minigameType,
+    minigameResults,
     connect,
     disconnect,
     rollDice,

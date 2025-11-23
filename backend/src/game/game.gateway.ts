@@ -46,6 +46,14 @@ export interface Bonus {
   effect: string;
 }
 
+export interface MinigameState {
+  gameType: string;
+  initiatorId: string;
+  playerScores: Map<string, number>; // playerId -> score
+  playersFinished: Set<string>; // IDs des joueurs qui ont fini
+  startedAt: Date;
+}
+
 export interface GameState {
   roomId: string;
   players: Player[];
@@ -54,6 +62,7 @@ export interface GameState {
   boardSize: number; // Nombre de tuiles sur le plateau
   status: 'waiting' | 'playing' | 'finished';
   winner?: string;
+  minigame?: MinigameState; // État du mini-jeu en cours
 }
 
 interface JoinGamePayload {
@@ -83,6 +92,18 @@ interface UseBonusPayload {
   roomId: string;
   playerId: string;
   bonusId: string;
+}
+
+interface MinigameStartPayload {
+  roomId: string;
+  playerId: string;
+  gameType: string;
+}
+
+interface MinigameScorePayload {
+  roomId: string;
+  playerId: string;
+  score: number;
 }
 
 @WebSocketGateway({
@@ -446,6 +467,125 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.emitSystemMessage(roomId, result.message);
 
     return result;
+  }
+
+  @SubscribeMessage('minigameStart')
+  handleMinigameStart(
+    @MessageBody() payload: MinigameStartPayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { roomId, playerId, gameType } = payload;
+    const gameState = this.games.get(roomId);
+
+    if (!gameState) {
+      return { success: false, message: 'Partie non trouvée' };
+    }
+
+    // Initialiser l'état du mini-jeu
+    gameState.minigame = {
+      gameType,
+      initiatorId: playerId,
+      playerScores: new Map(),
+      playersFinished: new Set(),
+      startedAt: new Date(),
+    };
+
+    // Notifier TOUS les joueurs que le mini-jeu commence
+    this.server.to(roomId).emit('minigameStarted', {
+      gameType,
+      initiatorId: playerId,
+      initiatorName: gameState.players.find(p => p.id === playerId)?.name,
+    });
+
+    this.emitSystemMessage(
+      roomId,
+      `🎮 ${gameState.players.find(p => p.id === playerId)?.name} a lancé un mini-jeu : ${gameType} !`
+    );
+
+    return { success: true, message: 'Mini-jeu démarré' };
+  }
+
+  @SubscribeMessage('minigameScore')
+  handleMinigameScore(
+    @MessageBody() payload: MinigameScorePayload,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { roomId, playerId, score } = payload;
+    const gameState = this.games.get(roomId);
+
+    if (!gameState || !gameState.minigame) {
+      return { success: false, message: 'Mini-jeu non trouvé' };
+    }
+
+    // Enregistrer le score du joueur
+    gameState.minigame.playerScores.set(playerId, score);
+    gameState.minigame.playersFinished.add(playerId);
+
+    const player = gameState.players.find(p => p.id === playerId);
+    console.log(`Player ${player?.name} finished with score: ${score}`);
+
+    // Vérifier si tous les joueurs ont fini
+    const allPlayersFinished = gameState.players.every(p => 
+      gameState.minigame!.playersFinished.has(p.id)
+    );
+
+    console.log(`Players finished: ${gameState.minigame.playersFinished.size}/${gameState.players.length}`);
+    console.log(`All players finished: ${allPlayersFinished}`);
+
+    if (allPlayersFinished) {
+      // Calculer le classement
+      const results = Array.from(gameState.minigame.playerScores.entries())
+        .map(([pId, pScore]) => {
+          const p = gameState.players.find(player => player.id === pId);
+          return {
+            playerId: pId,
+            playerName: p?.name || 'Unknown',
+            playerColor: p?.color || '#000',
+            score: pScore,
+          };
+        })
+        .sort((a, b) => a.score - b.score); // Tri croissant (plus petit temps = meilleur)
+
+      // Attribuer les pièces selon le classement
+      const coinsDistribution = [5, 3, 1]; // 1er, 2ème, 3ème
+      const resultsWithCoins = results.map((result, index) => ({
+        ...result,
+        rank: index + 1,
+        coinsEarned: coinsDistribution[index] || 0,
+      }));
+
+      // Distribuer les pièces
+      for (const result of resultsWithCoins) {
+        const player = gameState.players.find(p => p.id === result.playerId);
+        if (player && result.coinsEarned > 0) {
+          player.coins += result.coinsEarned;
+        }
+      }
+
+      // Notifier tous les joueurs des résultats
+      this.server.to(roomId).emit('minigameResults', resultsWithCoins);
+      this.server.to(roomId).emit('gameState', gameState);
+
+      // Message système
+      const winner = resultsWithCoins[0];
+      this.emitSystemMessage(
+        roomId,
+        `🏆 ${winner.playerName} remporte le mini-jeu et gagne ${winner.coinsEarned} pièces !`
+      );
+
+      // Nettoyer l'état du mini-jeu
+      gameState.minigame = undefined;
+    } else {
+      // Notifier les autres joueurs qu'un joueur a fini
+      this.server.to(roomId).emit('minigamePlayerFinished', {
+        playerId,
+        playerName: player?.name,
+        finishedCount: gameState.minigame.playersFinished.size,
+        totalPlayers: gameState.players.length,
+      });
+    }
+
+    return { success: true, message: 'Score enregistré' };
   }
 
   // Méthode utilitaire pour envoyer un message système dans le chat

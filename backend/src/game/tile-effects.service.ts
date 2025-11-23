@@ -3,6 +3,7 @@ import { Tile } from '../board/board.types';
 import { Bonus, Player } from './game.gateway';
 
 export interface TileEffect {
+  tileType?: string;
   coinsChange?: number;
   keysChange?: number;
   bonusGained?: Bonus;
@@ -12,7 +13,9 @@ export interface TileEffect {
 @Injectable()
 export class TileEffectsService {
   applyTileEffect(player: Player, tile: Tile, diceResult?: number): TileEffect {
-    const effect: TileEffect = {};
+    const effect: TileEffect = {
+      tileType: tile.kind
+    };
     
     const dicePrefix = diceResult ? `🎲 ${player.name} fait ${diceResult} - ` : '';
 
