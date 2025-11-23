@@ -118,6 +118,7 @@ import PlayerStack from './PlayerStack.vue';
 import DiceD6 from '../dices/dice-d6.vue';
 import { useGameChat } from '../../../composables/useGameChat';
 import { useRollDice } from '../../../composables/useRollDice';
+import { useGameState } from '../../../composables/useGameState';
 import GameStatus, { type GamePlayer, type Bonus } from './GameStatus.vue';
 
 const props = defineProps<{
@@ -141,8 +142,22 @@ const { diceValues, rollId, roll: rollDice } = useRollDice()
 
 const roomId = ref('game-room-1')
 const playerId = ref(`player-${Math.random().toString(36).slice(2, 8)}`)
+const playerName = ref(`Joueur ${Math.floor(Math.random() * 1000)}`)
+const playerColor = ref(['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#6366f1'][Math.floor(Math.random() * 5)])
 
-const { messages: chatMessages, connected, sendMessage: sendChatMessage, notifyRoll } = useGameChat(roomId, playerId)
+const { messages: chatMessages, connected: chatConnected, sendMessage: sendChatMessage, notifyRoll } = useGameChat(roomId, playerId)
+
+// Connexion au jeu via WebSocket
+const { 
+  connected: gameConnected, 
+  gameState, 
+  currentPlayer: realCurrentPlayer,
+  isMyTurn,
+  rollDice: rollGameDice,
+  movePlayer
+} = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
+
+const connected = computed(() => chatConnected.value && gameConnected.value)
 
 const newMessage = ref('')
 const chatMessagesEl = ref<HTMLElement | null>(null)
@@ -160,6 +175,15 @@ watch(chatMessages, () => {
 }, { deep: true })
 
 const handleRollDice = () => {
+  if (!isMyTurn.value) {
+    console.warn('Ce n\'est pas votre tour!')
+    return
+  }
+  
+  // Lancer les dés via WebSocket
+  rollGameDice()
+  
+  // Animation locale
   rollDice(1, 6)
   if (diceValues.value.length > 0) {
     notifyRoll([...diceValues.value])
@@ -179,51 +203,32 @@ const lastDiceRoll = computed(() => {
   return null
 })
 
-const currentTurnPlayerId = ref('1')
-
-const gamePlayers = ref<GamePlayer[]>([
-  {
-    id: '1',
-    name: 'Alice Martin',
-    color: '#FF6B6B',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    coins: 150,
-    keys: 3,
-    bonuses: [
-      { id: 'b1', name: 'Double pièces', icon: '⭐' },
-      { id: 'b2', name: 'Protection', icon: '🛡️' }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Bob Dupont',
-    color: '#4ECDC4',
-    coins: 120,
-    keys: 2,
-    bonuses: []
-  },
-  {
-    id: '3',
-    name: 'Charlie Lee',
-    color: '#FFD93D',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    coins: 180,
-    keys: 2,
-    bonuses: [
-      { id: 'b3', name: 'Vitesse x2', icon: '⚡' }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Diana Ross',
-    color: '#95E1D3',
-    coins: 90,
-    keys: 1,
-    bonuses: []
+// Utiliser les vraies données du gameState ou fallback sur mock
+const gamePlayers = computed<GamePlayer[]>(() => {
+  if (gameState.value && gameState.value.players.length > 0) {
+    return gameState.value.players
   }
-])
+  // Fallback mock data si pas encore connecté
+  return [
+    {
+      id: playerId.value,
+      name: playerName.value,
+      color: playerColor.value || '#6366f1',
+      coins: 150,
+      keys: 3,
+      bonuses: []
+    }
+  ]
+})
+
+const currentTurnPlayerId = computed(() => {
+  return gameState.value?.currentTurnPlayerId || playerId.value
+})
 
 const currentGamePlayer = computed(() => {
+  if (realCurrentPlayer.value) {
+    return realCurrentPlayer.value
+  }
   return gamePlayers.value.find(p => p.id === playerId.value) || gamePlayers.value[0]!
 })
 

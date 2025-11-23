@@ -147,6 +147,7 @@ const rankedPlayers = computed(() => {
 .section-title {
   margin: 0 0 8px 0;
   font-size: 11px;
+
   font-weight: 700;
   color: #1f2937;
   text-transform: uppercase;
