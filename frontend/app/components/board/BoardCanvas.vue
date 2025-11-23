@@ -532,49 +532,116 @@ const getTileDescription = (tile: Tile) => {
 }
 
 .board-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 12px;
+  height: calc(100vh - 120px);
+}
+
+.sidebar {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
 }
 
-.tile-info-panel {
-  width: 320px;
-  background: #fff;
-  border: 2px solid #4CAF50;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  animation: slideIn 0.3s ease-out;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.tile-info-header {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
-  padding: 16px;
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  border-bottom: 1px solid #818cf8;
+}
 
-  h3 {
-    margin: 0;
+.panel-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.panel-content {
+  padding: 12px;
+}
+
+.panel-footer {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &--primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    color: white;
+    box-shadow: var(--shadow-sm);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+  }
+  
+  &--icon {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background: var(--primary-color);
+    color: white;
     font-size: 18px;
-    font-weight: 600;
+    
+    &:hover {
+      background: var(--primary-hover);
+    }
   }
 }
 
-.close-btn {
+.btn-icon {
+  font-size: 20px;
+}
+
+.btn-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
@@ -587,29 +654,77 @@ const getTileDescription = (tile: Tile) => {
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
-
+  
   &:hover {
     background: rgba(255, 255, 255, 0.3);
   }
 }
 
-.tile-info-content {
-  padding: 16px;
+.input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  
+  &:focus {
+    border-color: var(--primary-color);
+  }
+}
+
+.game-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  
+  &--connected {
+    background: #10b981;
+  }
+}
+
+.panel--tile-info {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .tile-info-image {
   width: 100%;
-  height: 120px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
-  border-radius: 8px;
-  margin-bottom: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
 
   img {
-    max-width: 80px;
-    max-height: 80px;
+    max-width: 70px;
+    max-height: 70px;
     object-fit: contain;
   }
 }
@@ -617,94 +732,165 @@ const getTileDescription = (tile: Tile) => {
 .tile-info-details {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .tile-info-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
-  background: #f9f9f9;
-  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
 
   .label {
     font-weight: 600;
-    color: #666;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .value {
     font-weight: 700;
-    font-size: 16px;
-    color: #333;
+    font-size: 14px;
+    color: var(--text-primary);
 
     &.positive {
-      color: #4CAF50;
+      color: var(--success-color);
     }
 
     &.negative {
-      color: #f44336;
+      color: var(--danger-color);
     }
   }
 }
 
 .tile-info-description {
-  padding: 12px;
-  background: #e8f5e9;
-  border-left: 3px solid #4CAF50;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #555;
+  padding: 10px;
+  background: #eef2ff;
+  border-left: 3px solid var(--primary-color);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
   margin-top: 8px;
 }
 
 .tile-info-players {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
 
   h4 {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #666;
+    margin: 0 0 8px 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 }
 
 .player-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .player-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: #f9f9f9;
-  border-radius: 6px;
-  transition: background 0.2s;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
 
   &:hover {
-    background: #f0f0f0;
+    border-color: var(--primary-color);
+    background: #eef2ff;
   }
 }
 
 .player-color {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
 .player-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
+}
+
+.panel--chat {
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.panel-content--chat {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-secondary);
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+}
+
+.chat-message {
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  line-height: 1.4;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--primary-color);
+    background: #eef2ff;
+  }
+
+  &--system {
+    background: #fffbeb;
+    border-color: #fbbf24;
+    font-style: italic;
+    color: var(--text-secondary);
+    
+    &:hover {
+      background: #fef3c7;
+      border-color: #f59e0b;
+    }
+  }
+}
+
+.message-author {
+  font-weight: 700;
+  margin-right: 4px;
+  color: var(--primary-color);
+  font-size: 11px;
+}
+
+.message-content {
+  color: var(--text-primary);
+  font-size: 12px;
 }
 </style>
