@@ -23,9 +23,17 @@ export interface Player {
   avatar?: string;
 }
 
+export type BonusType = 
+  | 'double_dice' | 'extra_turn' | 'teleport' | 'precision'  // Commun
+  | 'shield' | 'safe' | 'swap' | 'multiplier'  // Rare
+  | 'jackpot' | 'free_key' | 'lucky';  // Légendaire
+
+export type BonusRarity = 'common' | 'rare' | 'legendary';
+
 export interface Bonus {
   id: string;
-  type: 'double_dice' | 'extra_turn' | 'shield' | 'teleport';
+  type: BonusType;
+  rarity: BonusRarity;
   name: string;
   icon: string;
   effect: string;

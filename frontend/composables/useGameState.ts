@@ -1,8 +1,17 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { io, Socket } from 'socket.io-client'
 
+export type BonusType = 
+  | 'double_dice' | 'extra_turn' | 'teleport' | 'precision'  // Commun
+  | 'shield' | 'safe' | 'swap' | 'multiplier'  // Rare
+  | 'jackpot' | 'free_key' | 'lucky'  // Légendaire
+
+export type BonusRarity = 'common' | 'rare' | 'legendary'
+
 export interface Bonus {
   id: string
+  type: BonusType
+  rarity: BonusRarity
   name: string
   icon: string
   effect: string

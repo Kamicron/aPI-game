@@ -42,21 +42,14 @@ export class TileEffectsService {
         break;
 
       case 'bonus':
-        // Case bonus : gain d'un bonus aléatoire a implémenter plus tard
-        const bonusTypes: Bonus['type'][] = ['double_dice', 'extra_turn', 'shield', 'teleport'];
-        const randomBonus = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
-        
-        const bonus: Bonus = {
-          id: `bonus-${Date.now()}`,
-          type: randomBonus,
-          name: this.getBonusName(randomBonus),
-          icon: this.getBonusIcon(randomBonus),
-          effect: this.getBonusEffect(randomBonus),
-        };
+        // Case bonus : gain d'un bonus aléatoire avec système de rareté
+        const bonus = this.generateRandomBonus();
         
         player.bonuses.push(bonus);
         effect.bonusGained = bonus;
-        effect.message = `${dicePrefix}Gagne un bonus : ${bonus.icon} ${bonus.name} !`;
+        
+        const rarityEmoji = bonus.rarity === 'legendary' ? '✨' : bonus.rarity === 'rare' ? '⭐' : '🎁';
+        effect.message = `${dicePrefix}Gagne un bonus ${rarityEmoji} ${bonus.icon} ${bonus.name} !`;
         break;
 
       case 'malus':
@@ -90,32 +83,100 @@ export class TileEffectsService {
     return effect;
   }
 
+  /**
+   * Génère un bonus aléatoire avec système de rareté
+   */
+  private generateRandomBonus(): Bonus {
+    const random = Math.random() * 100;
+    
+    let rarity: Bonus['rarity'];
+    let bonusType: Bonus['type'];
+    
+    // Système de rareté avec poids
+    // Commun: 60%, Rare: 30%, Légendaire: 10%
+    if (random < 60) {
+      // Commun (60%)
+      rarity = 'common';
+      const commonBonuses: Bonus['type'][] = ['double_dice', 'extra_turn', 'teleport', 'precision'];
+      bonusType = commonBonuses[Math.floor(Math.random() * commonBonuses.length)];
+    } else if (random < 90) {
+      // Rare (30%)
+      rarity = 'rare';
+      const rareBonuses: Bonus['type'][] = ['shield', 'safe', 'swap', 'multiplier'];
+      bonusType = rareBonuses[Math.floor(Math.random() * rareBonuses.length)];
+    } else {
+      // Légendaire (10%)
+      rarity = 'legendary';
+      const legendaryBonuses: Bonus['type'][] = ['jackpot', 'free_key', 'lucky'];
+      bonusType = legendaryBonuses[Math.floor(Math.random() * legendaryBonuses.length)];
+    }
+    
+    return {
+      id: `bonus-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      type: bonusType,
+      rarity: rarity,
+      name: this.getBonusName(bonusType),
+      icon: this.getBonusIcon(bonusType),
+      effect: this.getBonusEffect(bonusType),
+    };
+  }
+
   private getBonusName(type: Bonus['type']): string {
-    const names = {
+    const names: Record<Bonus['type'], string> = {
+      // Commun
       double_dice: 'Dés Doubles',
       extra_turn: 'Tour Supplémentaire',
-      shield: 'Bouclier',
       teleport: 'Téléportation',
+      precision: 'Précision',
+      // Rare
+      shield: 'Bouclier',
+      safe: 'Coffre-Fort',
+      swap: 'Échange',
+      multiplier: 'Multiplicateur x2',
+      // Légendaire
+      jackpot: 'Jackpot',
+      free_key: 'Clé Gratuite',
+      lucky: 'Chance',
     };
     return names[type] || 'Bonus';
   }
 
   private getBonusIcon(type: Bonus['type']): string {
-    const icons = {
+    const icons: Record<Bonus['type'], string> = {
+      // Commun
       double_dice: '🎲🎲',
       extra_turn: '⏭️',
-      shield: '🛡️',
       teleport: '✨',
+      precision: '🎯',
+      // Rare
+      shield: '🛡️',
+      safe: '🔒',
+      swap: '🔄',
+      multiplier: '💎',
+      // Légendaire
+      jackpot: '💰',
+      free_key: '🔑',
+      lucky: '🎰',
     };
     return icons[type] || '🎁';
   }
 
   private getBonusEffect(type: Bonus['type']): string {
-    const effects = {
-      double_dice: 'Lance les dés deux fois et choisis le meilleur résultat',
+    const effects: Record<Bonus['type'], string> = {
+      // Commun
+      double_dice: 'Lance 2 dés et choisis le meilleur résultat',
       extra_turn: 'Rejoue immédiatement après ton tour',
-      shield: 'Protège contre le prochain malus',
-      teleport: 'Téléporte-toi sur n\'importe quelle case',
+      teleport: 'Choisis n\'importe quelle case du plateau',
+      precision: 'Choisis exactement où aller (1-6 cases)',
+      // Rare
+      shield: 'Annule le prochain malus',
+      safe: 'Tes pièces sont protégées pendant 2 tours',
+      swap: 'Échange ta position avec un autre joueur',
+      multiplier: 'Les pièces gagnées sont doublées (2 tours)',
+      // Légendaire
+      jackpot: 'Gagne 50 pièces instantanément',
+      free_key: 'Obtiens une clé gratuitement',
+      lucky: 'Les malus deviennent des bonus (2 tours)',
     };
     return effects[type] || 'Effet spécial';
   }
