@@ -112,33 +112,22 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
   }
 
   const rollDice = () => {
-    if (!socket.value || !connected.value) {
-      console.error('Not connected to game server')
-      return
-    }
-
-    if (!isMyTurn.value) {
-      console.error('Not your turn')
-      return
-    }
-
+    if (!socket.value) return
     socket.value.emit('rollDice', { roomId, playerId })
   }
 
   const movePlayer = (targetPosition: number) => {
-    if (!socket.value || !connected.value) {
-      console.error('Not connected to game server')
-      return
-    }
+    if (!socket.value) return
+    socket.value.emit('movePlayer', { roomId, playerId, targetPosition })
+  }
 
-    socket.value.emit('movePlayer', {
-      roomId,
-      playerId,
-      targetPosition,
-    })
+  const buyKey = () => {
+    if (!socket.value) return
+    socket.value.emit('buyKey', { roomId, playerId })
   }
 
   const getGameState = () => {
+    if (!socket.value) return
     if (!socket.value || !connected.value) {
       console.error('Not connected to game server')
       return
@@ -167,6 +156,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     disconnect,
     rollDice,
     movePlayer,
+    buyKey,
     getGameState,
   }
 }

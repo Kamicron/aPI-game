@@ -11,25 +11,19 @@ export interface TileEffect {
 
 @Injectable()
 export class TileEffectsService {
-  /**
-   * Applique les effets d'une tuile sur un joueur
-   */
   applyTileEffect(player: Player, tile: Tile, diceResult?: number): TileEffect {
     const effect: TileEffect = {};
     
-    // Préfixe avec le résultat du dé si disponible
     const dicePrefix = diceResult ? `🎲 ${player.name} fait ${diceResult} - ` : '';
 
     switch (tile.kind) {
       case 'start':
-        // Case départ : bonus de passage
         effect.coinsChange = 5;
         effect.message = `${dicePrefix}Passe par la case départ et gagne 5 pièces ! 💰`;
         player.coins += 5;
         break;
 
       case 'coins':
-        // Case pièces : gain ou perte selon coinsChange
         if (tile.coinsChange) {
           effect.coinsChange = tile.coinsChange;
           player.coins += tile.coinsChange;
@@ -48,7 +42,7 @@ export class TileEffectsService {
         break;
 
       case 'bonus':
-        // Case bonus : gain d'un bonus aléatoire
+        // Case bonus : gain d'un bonus aléatoire a implémenter plus tard
         const bonusTypes: Bonus['type'][] = ['double_dice', 'extra_turn', 'shield', 'teleport'];
         const randomBonus = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
         
@@ -66,11 +60,10 @@ export class TileEffectsService {
         break;
 
       case 'malus':
-        // Case malus : perte de pièces ou de clés
         const malusType = Math.random() > 0.5 ? 'coins' : 'keys';
         
         if (malusType === 'coins') {
-          const loss = Math.floor(Math.random() * 30) + 10; // 10-40 pièces
+          const loss = Math.floor(Math.random() * 30) + 10;
           effect.coinsChange = -loss;
           player.coins = Math.max(0, player.coins - loss);
           effect.message = `${dicePrefix}Tombe sur un malus ⚠️ et perd ${loss} pièces !`;

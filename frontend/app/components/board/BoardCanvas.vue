@@ -32,6 +32,12 @@
             <span class="btn-icon">🎲</span>
             <span>{{ isMyTurn ? 'Lancer les dés' : 'Pas votre tour' }}</span>
           </button>
+          
+          <button v-if="isOnKeyShop" class="btn btn--secondary" @click="buyKey" :disabled="!canBuyKey"
+            :class="{ 'btn--disabled': !canBuyKey }">
+            <span class="btn-icon">🔑</span>
+            <span>{{ canBuyKey ? `Acheter une clé (${keyShopPrice} 💰)` : `Pas assez de pièces (${keyShopPrice} 💰)` }}</span>
+          </button>
           <DiceD6 v-if="lastDiceRoll" :value="lastDiceRoll" :roll-id="rollId" background-color="#6366f1" />
           <div v-if="!isMyTurn && gameState" class="turn-info">
             <span class="turn-waiting">⏳ En attente...</span>
@@ -161,7 +167,8 @@ const {
   lastDiceResult,
   lastDicePlayerId,
   rollDice: rollGameDice,
-  movePlayer
+  movePlayer,
+  buyKey
 } = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
 
 const connected = computed(() => chatConnected.value && gameConnected.value)
@@ -213,6 +220,23 @@ const lastDiceRoll = computed(() => {
     return diceValues.value[0] as 1 | 2 | 3 | 4 | 5 | 6
   }
   return null
+})
+
+// Vérifier si le joueur est sur une boutique de clés
+const isOnKeyShop = computed(() => {
+  if (!realCurrentPlayer.value || !props.board) return false
+  const currentTile = props.board.tiles.find((t: Tile) => t.id === realCurrentPlayer.value?.position)
+  return currentTile?.kind === 'key_shop'
+})
+
+const keyShopPrice = computed(() => {
+  if (!realCurrentPlayer.value || !props.board) return 100
+  const currentTile = props.board.tiles.find((t: Tile) => t.id === realCurrentPlayer.value?.position)
+  return currentTile?.keyPrice || 100
+})
+
+const canBuyKey = computed(() => {
+  return isOnKeyShop.value && realCurrentPlayer.value && realCurrentPlayer.value.coins >= keyShopPrice.value
 })
 
 // Utiliser les vraies données du gameState ou fallback sur mock
@@ -681,6 +705,14 @@ const getTileDescription = (tile: Tile) => {
     &:hover {
       transform: none !important;
       box-shadow: var(--shadow-sm) !important;
+    }
+  }
+
+  &--secondary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    
+    &:hover:not(.btn--disabled) {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
     }
   }
 

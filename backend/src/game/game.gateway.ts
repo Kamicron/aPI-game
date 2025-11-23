@@ -59,6 +59,11 @@ interface MovePlayerPayload {
   targetPosition: number;
 }
 
+interface BuyKeyPayload {
+  roomId: string;
+  playerId: string;
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env.FRONT_URL || 'http://localhost:3000',
@@ -345,6 +350,46 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (gameState) {
       client.emit('gameState', gameState);
     }
+  }
+
+  @SubscribeMessage('buyKey')
+  handleBuyKey(@MessageBody() payload: BuyKeyPayload) {
+    const { roomId, playerId } = payload;
+    
+    const gameState = this.games.get(roomId);
+    if (!gameState) {
+      return { success: false, error: 'Partie introuvable' };
+    }
+
+    // Trouver le joueur
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) {
+      return { success: false, error: 'Joueur introuvable' };
+    }
+
+    // Trouver la tuile actuelle
+    const currentTile = gameState.board?.tiles.find(t => t.id === player.position);
+    if (!currentTile || currentTile.kind !== 'key_shop') {
+      return { success: false, error: 'Vous n\'êtes pas sur une boutique de clés' };
+    }
+
+    const keyPrice = currentTile.keyPrice || 100;
+
+    // Vérifier si le joueur a assez de pièces
+    if (player.coins < keyPrice) {
+      this.emitSystemMessage(roomId, `${player.name} n'a pas assez de pièces pour acheter une clé (${keyPrice} pièces nécessaires)`);
+      return { success: false, error: 'Pas assez de pièces' };
+    }
+
+    // Effectuer l'achat
+    player.coins -= keyPrice;
+    player.keys += 1;
+
+    // Notifier tous les joueurs
+    this.server.to(roomId).emit('gameState', gameState);
+    this.emitSystemMessage(roomId, `🔑 ${player.name} achète une clé pour ${keyPrice} pièces !`);
+
+    return { success: true, newCoins: player.coins, newKeys: player.keys };
   }
 
   // Méthode utilitaire pour envoyer un message système dans le chat
