@@ -44,7 +44,9 @@
               ? 'niveau(x)'
               : selectedGame?.id === 'precision'
                 ? 'points'
-                : ''
+                : selectedGame?.id === 'farkle'
+                  ? 'points'
+                  : ''
             " @close="closeOverlay" />
         </div>
       </div>
@@ -57,6 +59,7 @@ import { ref, computed, markRaw, watch } from 'vue'
 import ReactionGame from './games/ReactionGame.vue'
 import SimonGame from './games/SimonGame.vue'
 import PrecisionGame from './games/PrecisionGame.vue'
+import FarkleGame from './games/FarkleGame.vue'
 import MinigameResults, { type MinigameResult } from './MinigameResults.vue'
 
 interface MinigameInfo {
@@ -117,6 +120,14 @@ const allGames: MinigameInfo[] = [
     description: 'Clique sur les cibles qui apparaissent',
     difficulty: 2,
     component: markRaw(PrecisionGame)
+  },
+  {
+    id: 'farkle',
+    name: 'Farkle',
+    icon: '🎲',
+    description: 'Accumule des points en lançant les dés sans tout perdre',
+    difficulty: 2,
+    component: markRaw(FarkleGame)
   },
   {
     id: 'typing',
