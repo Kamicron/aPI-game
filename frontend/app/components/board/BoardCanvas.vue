@@ -27,47 +27,25 @@
         </div>
 
         <div class="game-panel">
-          <BonusPanel 
-            :current-player="realCurrentPlayer" 
-            :is-my-turn="isMyTurn"
-            @use-bonus="useBonusAction"
-          />
-          
-          <GameControls
-            :is-my-turn="isMyTurn"
-            :is-on-key-shop="isOnKeyShop"
-            :can-buy-key="canBuyKey"
-            :key-shop-price="keyShopPrice"
-            :last-dice-roll="lastDiceRoll"
-            :roll-id="rollId"
-            @roll-dice="handleRollDice"
-            @buy-key="buyKey"
-          />
+          <BonusPanel :current-player="realCurrentPlayer" :is-my-turn="isMyTurn" @use-bonus="useBonusAction" />
+
+          <GameControls :is-my-turn="isMyTurn" :is-on-key-shop="isOnKeyShop" :can-buy-key="canBuyKey"
+            :key-shop-price="keyShopPrice" :last-dice-roll="lastDiceRoll" :roll-id="rollId" @roll-dice="handleRollDice"
+            @buy-key="buyKey" />
         </div>
       </div>
 
       <div class="sidebar sidebar--right">
-        <ChatPanel 
-          :messages="chatMessages"
-          :connected="connected"
-          @send-message="sendChatMessage"
-        />
+        <ChatPanel :messages="chatMessages" :connected="connected" @send-message="sendChatMessage" />
 
-        <TileInfoPanel 
-          :tile="selectedTile"
-          @close="selectedTile = null"
-        />
+        <TileInfoPanel :tile="selectedTile" @close="selectedTile = null" />
       </div>
     </div>
 
     <!-- Mini-game Overlay -->
-    <MinigameOverlay
-      :is-open="isMinigameOpen"
-      :player-info="playerInfo"
-      :results="minigameResultsFromState"
-      @close="closeMinigame"
-      @submit-score="handleSubmitScore"
-    />
+    <MinigameOverlay :is-open="isMinigameOpen" :player-info="playerInfo" :results="minigameResultsFromState"
+      :minigame-type="minigameType" :is-initiator="isMinigameInitiator" @close="closeMinigame"
+      @submit-score="handleSubmitScore" @game-selected="handleGameSelected" />
   </div>
 </template>
 
@@ -140,6 +118,7 @@ const connected = computed(() => chatConnected.value && gameConnected.value)
 
 // Mini-game state
 const isMinigameOpen = ref(false)
+const isMinigameInitiator = ref(false)
 const playerInfo = computed(() => ({
   id: playerId.value,
   name: playerName.value,
@@ -156,11 +135,12 @@ const handleRollDice = () => {
 
 const closeMinigame = () => {
   isMinigameOpen.value = false
+  isMinigameInitiator.value = false
 }
 
 const handleSubmitScore = (score: number) => {
   console.log('🎮 Submitting score:', score)
-  
+
   // Envoyer le score au backend
   if (gameConnected.value && socket.value) {
     socket.value.emit('minigameScore', {
@@ -179,19 +159,27 @@ watch(lastDiceResult, (result) => {
   }
 })
 
+const handleGameSelected = (gameId: string) => {
+  console.log('🎮 Minigame selected:', gameId)
+
+  // L'initiateur envoie le type de mini-jeu choisi au backend
+  if (!socket.value || !gameConnected.value) return
+
+  socket.value.emit('minigameStart', {
+    roomId: roomId.value,
+    playerId: playerId.value,
+    gameType: gameId,
+  })
+}
+
 // Surveiller les effets de tuiles pour démarrer le mini-jeu (seulement pour l'initiateur)
 watch(lastTileEffect, (effect) => {
   console.log('🎮 lastTileEffect changed:', effect)
   if (effect && effect.type === 'minigame') {
-    console.log('🎮 Starting minigame for everyone!')
-    // L'initiateur démarre le mini-jeu pour tous les joueurs
-    if (socket.value) {
-      socket.value.emit('minigameStart', {
-        roomId: roomId.value,
-        playerId: playerId.value,
-        gameType: 'reaction' // Pour l'instant, toujours le jeu de réflexes
-      })
-    }
+    console.log('🎮 Minigame tile reached, opening selection for initiator')
+    // Ce joueur est l'initiateur du mini-jeu : il choisit le jeu
+    isMinigameInitiator.value = true
+    isMinigameOpen.value = true
   }
 })
 
@@ -200,6 +188,7 @@ watch(minigameActive, (active) => {
   console.log('🎮 minigameActive changed:', active)
   if (active) {
     console.log('🎮 Opening minigame overlay for all players!')
+    // L'overlay doit être ouvert pour tous les joueurs pendant le mini-jeu
     isMinigameOpen.value = true
   } else {
     console.log('🎮 Closing minigame overlay')
@@ -280,7 +269,7 @@ watch(gameState, (newState, oldState) => {
       // Détecter les changements de position
       const currentAnimatedPos = animatedPositions.value.get(player.id)!
       const isCurrentlyAnimating = isAnimating.value.get(player.id) || false
-      
+
       // Animer seulement si la position a changé et qu'on n'est pas déjà en train d'animer
       if (player.position !== currentAnimatedPos && !isCurrentlyAnimating) {
         animatePlayerMovement(player.id, currentAnimatedPos, player.position)
@@ -651,7 +640,7 @@ const focusTile = (tile: Tile, x: number, y: number) => {
 
   &--secondary {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    
+
     &:hover:not(.btn--disabled) {
       background: linear-gradient(135deg, #059669 0%, #047857 100%);
     }

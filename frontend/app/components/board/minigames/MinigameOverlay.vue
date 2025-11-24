@@ -10,12 +10,7 @@
           </div>
 
           <div class="games-grid">
-            <div 
-              v-for="game in availableGames" 
-              :key="game.id"
-              @click="selectGame(game)"
-              class="game-card"
-            >
+            <div v-for="game in availableGames" :key="game.id" @click="selectGame(game)" class="game-card">
               <div class="game-icon">{{ game.icon }}</div>
               <h3 class="game-name">{{ game.name }}</h3>
               <p class="game-description">{{ game.description }}</p>
@@ -29,11 +24,7 @@
 
         <!-- Jeu en cours -->
         <div v-else-if="currentState === 'playing'" class="game-playing">
-          <component 
-            :is="currentGameComponent"
-            :key="gameKey"
-            @finish="handleGameFinish"
-          />
+          <component :is="currentGameComponent" :key="gameKey" @finish="handleGameFinish" />
         </div>
 
         <!-- Attente des autres joueurs -->
@@ -47,12 +38,8 @@
 
         <!-- Résultats -->
         <div v-else-if="currentState === 'results'" class="game-results">
-          <MinigameResults
-            :game-name="selectedGame?.name || ''"
-            :results="gameResults"
-            score-label="ms (moy.)"
-            @close="closeOverlay"
-          />
+          <MinigameResults :game-name="selectedGame?.name || ''" :results="gameResults"
+            :score-label="selectedGame?.id === 'reaction' ? 'ms (moy.)' : 'niveau(x)'" @close="closeOverlay" />
         </div>
       </div>
     </div>
@@ -62,6 +49,7 @@
 <script setup lang="ts">
 import { ref, computed, markRaw, watch } from 'vue'
 import ReactionGame from './games/ReactionGame.vue'
+import SimonGame from './games/SimonGame.vue'
 import MinigameResults, { type MinigameResult } from './MinigameResults.vue'
 
 interface MinigameInfo {
@@ -81,11 +69,14 @@ const props = defineProps<{
     color: string
   }
   results?: MinigameResult[] | null
+  minigameType?: string | null
+  isInitiator?: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
   'submit-score': [score: number]
+  'game-selected': [gameId: string]
 }>()
 
 const currentState = ref<'selection' | 'playing' | 'results' | 'waiting'>('playing')
@@ -110,7 +101,7 @@ const allGames: MinigameInfo[] = [
     icon: '🧠',
     description: 'Mémorise la séquence de couleurs',
     difficulty: 3,
-    component: null // À implémenter
+    component: markRaw(SimonGame)
   },
   {
     id: 'precision',
@@ -142,13 +133,13 @@ const allGames: MinigameInfo[] = [
 const availableGames = computed(() => {
   // Pour l'instant, on ne propose que les jeux implémentés
   const implementedGames = allGames.filter(g => g.component !== null)
-  
+
   // Mélanger et prendre 3 (ou moins si pas assez de jeux)
   const shuffled = [...implementedGames].sort(() => Math.random() - 0.5)
   return shuffled.slice(0, Math.min(3, shuffled.length))
 })
 
-// Initialiser le jeu sélectionné (pour l'instant toujours réaction)
+// Initialiser le jeu sélectionné (par défaut le jeu de réflexes)
 selectedGame.value = allGames.find(g => g.id === 'reaction') || null
 
 // Surveiller l'ouverture de l'overlay pour réinitialiser le jeu
@@ -156,9 +147,27 @@ watch(() => props.isOpen, (isOpen) => {
   if (isOpen) {
     // Incrémenter la clé pour forcer la recréation du composant
     gameKey.value++
-    currentState.value = 'playing'
-    selectedGame.value = allGames.find(g => g.id === 'reaction') || null
     gameResults.value = []
+
+    // Si un type de mini-jeu est imposé (vient du backend), le choisir
+    if (props.minigameType) {
+      const forcedGame = allGames.find(g => g.id === props.minigameType)
+      if (forcedGame && forcedGame.component) {
+        selectedGame.value = forcedGame
+        currentState.value = 'playing'
+        return
+      }
+    }
+
+    // Sinon, si le joueur est l'initiateur, passer par l'écran de sélection
+    if (props.isInitiator) {
+      currentState.value = 'selection'
+      selectedGame.value = null
+    } else {
+      // Par défaut, on tombe sur le jeu de réflexes
+      selectedGame.value = allGames.find(g => g.id === 'reaction') || null
+      currentState.value = 'playing'
+    }
   }
 })
 
@@ -180,17 +189,17 @@ const selectGame = (game: MinigameInfo) => {
     alert('Ce jeu n\'est pas encore disponible !')
     return
   }
-  
   selectedGame.value = game
   currentState.value = 'playing'
+  emit('game-selected', game.id)
 }
 
 const handleGameFinish = (score: number) => {
   console.log('🎮 Player finished with score:', score)
-  
+
   // Envoyer le score au backend
   emit('submit-score', score)
-  
+
   // Passer à l'état d'attente des autres joueurs
   currentState.value = 'waiting'
 }
@@ -233,6 +242,7 @@ const closeOverlay = () => {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -257,6 +267,7 @@ const closeOverlay = () => {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -363,7 +374,8 @@ const closeOverlay = () => {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.4s ease-out;
   min-width: 400px;
-  overflow: hidden; /* Empêcher la scrollbar */
+  overflow: hidden;
+  /* Empêcher la scrollbar */
 
   h3 {
     font-size: 24px;
@@ -382,13 +394,15 @@ const closeOverlay = () => {
 .waiting-spinner {
   font-size: 64px;
   animation: spin 2s linear infinite;
-  line-height: 1; /* Éviter le débordement vertical */
+  line-height: 1;
+  /* Éviter le débordement vertical */
 }
 
 @keyframes spin {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

@@ -534,6 +534,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (allPlayersFinished) {
       // Calculer le classement
+      const gameType = gameState.minigame.gameType;
+
       const results = Array.from(gameState.minigame.playerScores.entries())
         .map(([pId, pScore]) => {
           const p = gameState.players.find(player => player.id === pId);
@@ -544,7 +546,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
             score: pScore,
           };
         })
-        .sort((a, b) => a.score - b.score); // Tri croissant (plus petit temps = meilleur)
+        .sort((a, b) => {
+          // Jeux de réflexes : plus petit temps = meilleur
+          if (gameType === 'reaction') {
+            return a.score - b.score;
+          }
+          // Jeux de type "niveau" (ex: mémoire) : plus grand niveau = meilleur
+          if (gameType === 'memory') {
+            return b.score - a.score;
+          }
+          // Par défaut, garder un tri croissant
+          return a.score - b.score;
+        });
 
       // Attribuer les pièces selon le classement
       const coinsDistribution = [5, 3, 1]; // 1er, 2ème, 3ème
