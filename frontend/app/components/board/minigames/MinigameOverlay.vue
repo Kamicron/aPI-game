@@ -39,12 +39,12 @@
         <!-- Résultats -->
         <div v-else-if="currentState === 'results'" class="game-results">
           <MinigameResults :game-name="selectedGame?.name || ''" :results="gameResults" :score-label="selectedGame?.id === 'reaction'
-              ? 'ms (moy.)'
-              : selectedGame?.id === 'memory'
-                ? 'niveau(x)'
-                : selectedGame?.id === 'precision'
-                  ? 'points'
-                  : ''
+            ? 'ms (moy.)'
+            : selectedGame?.id === 'memory'
+              ? 'niveau(x)'
+              : selectedGame?.id === 'precision'
+                ? 'points'
+                : ''
             " @close="closeOverlay" />
         </div>
       </div>

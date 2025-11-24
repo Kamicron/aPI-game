@@ -464,7 +464,7 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #e5e7eb;
-  border-radius: 9px;
+  border-radius: 9 px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 
   &.board-canvas-controls--overlay {
