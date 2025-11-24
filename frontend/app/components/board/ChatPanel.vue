@@ -64,15 +64,17 @@ watch(() => props.messages, () => {
 
 <style scoped lang="scss">
 .panel {
-  background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
 
-  &--chat {
-    height: 100%;
+  /* flex-basis 0 pour partager l'espace quand un autre panneau est présent */
+  &.panel--chat {
+    flex: 1 1 0;
   }
 }
 
@@ -82,12 +84,13 @@ watch(() => props.messages, () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
 }
 
 .panel-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   margin: 0;
 }
 

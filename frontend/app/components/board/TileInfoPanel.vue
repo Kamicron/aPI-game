@@ -6,31 +6,45 @@
     </div>
 
     <div class="panel-content">
-      <div class="tile-info-image">
-        <img :src="getTileImage(tile)" :alt="tile.kind" />
+      <div class="tile-overview">
+        <div class="tile-icon-wrap">
+          <img :src="getTileImage(tile)" :alt="tile.kind" />
+        </div>
+
+        <div class="tile-tags">
+          <div class="tag-row">
+            <span class="tag-label">Type</span>
+            <span class="tag-value">{{ getTileTypeName(tile) }}</span>
+          </div>
+
+          <div v-if="tile.coinsChange" class="tag-row">
+            <span class="tag-label">Pièces</span>
+            <span class="tag-value" :class="{ positive: tile.coinsChange > 0, negative: tile.coinsChange < 0 }">
+              {{ tile.coinsChange > 0 ? '+' : '' }}{{ tile.coinsChange }}
+            </span>
+          </div>
+
+          <div v-if="tile.keyPrice" class="tag-row">
+            <span class="tag-label">Prix clé</span>
+            <span class="tag-value">{{ tile.keyPrice }} 💰</span>
+          </div>
+
+          <div v-if="tile.minigameCategory" class="tag-row">
+            <span class="tag-label">Mini-jeu</span>
+            <span class="tag-value">{{ tile.minigameCategory }}</span>
+          </div>
+        </div>
       </div>
 
-      <div class="tile-info-details">
-        <div class="tile-info-row">
-          <span class="label">Type :</span>
-          <span class="value">{{ getTileTypeName(tile) }}</span>
-        </div>
+      <p class="tile-description">{{ getTileDescription(tile) }}</p>
 
-        <div v-if="tile.coinsChange" class="tile-info-row">
-          <span class="label">Pièces :</span>
-          <span class="value" :class="{ positive: tile.coinsChange > 0, negative: tile.coinsChange < 0 }">
-            {{ tile.coinsChange > 0 ? '+' : '' }}{{ tile.coinsChange }}
+      <div v-if="playersOnTile && playersOnTile.length" class="players-section">
+        <div class="players-title">Joueurs présents</div>
+        <div class="players-chips">
+          <span v-for="player in playersOnTile" :key="player.id" class="player-chip">
+            <span class="player-dot" :style="{ backgroundColor: player.color }"></span>
+            <span class="player-name">{{ player.name }}</span>
           </span>
-        </div>
-
-        <div v-if="tile.keyPrice" class="tile-info-row">
-          <span class="label">Prix clé :</span>
-          <span class="value">{{ tile.keyPrice }} 💰</span>
-        </div>
-
-        <div v-if="tile.minigameCategory" class="tile-info-row">
-          <span class="label">Mini-jeu :</span>
-          <span class="value">{{ tile.minigameCategory }}</span>
         </div>
       </div>
     </div>
@@ -39,9 +53,11 @@
 
 <script setup lang="ts">
 import type { Tile } from '../../../composables/useBoard'
+import type { GamePlayer } from './GameStatus.vue'
 
-defineProps<{
+const props = defineProps<{
   tile: Tile | null
+  playersOnTile?: GamePlayer[]
 }>()
 
 defineEmits<{
@@ -61,17 +77,36 @@ const getTileTitle = (tile: Tile): string => {
   return titles[tile.kind] || 'Case'
 }
 
-const getTileImage = (tile: Tile): string => {
-  const images: Record<string, string> = {
-    start: '/images/tiles/start.png',
-    coins: tile.coinsChange && tile.coinsChange > 0 ? '/images/tiles/coins-plus.png' : '/images/tiles/coins-minus.png',
-    key_shop: '/images/tiles/key-shop.png',
-    bonus: '/images/tiles/bonus.png',
-    malus: '/images/tiles/malus.png',
-    minigame: '/images/tiles/minigame.png',
-    empty: '/images/tiles/empty.png'
+const getTileDescription = (tile: Tile): string => {
+  const base = 'Tu es tombé sur une case spéciale du plateau.'
+
+  const descriptions: Record<string, string> = {
+    start: 'Case de départ du plateau. Tout le monde commence ici et y repasse à chaque tour complet.',
+    coins: tile.coinsChange && tile.coinsChange > 0
+      ? `Tu gagnes ${tile.coinsChange} pièces en arrivant ici.`
+      : `Tu perds ${Math.abs(tile.coinsChange || 0)} pièces en arrivant ici.`,
+    key_shop: 'Boutique où tu peux acheter une clé contre des pièces, si tu as assez d’argent.',
+    bonus: 'Une case bonus qui peut t’offrir un avantage ou une surprise positive.',
+    malus: 'Une case malus qui te joue un mauvais tour (perte de pièces ou autre effet).',
+    minigame: 'Lance un mini-jeu pour tous les joueurs. Le gagnant remporte des pièces.',
+    empty: 'Une case neutre sans effet particulier.',
   }
-  return images[tile.kind] || '/images/tiles/default.png'
+
+  return descriptions[tile.kind] || base
+}
+
+const getTileImage = (tile: Tile): string => {
+  const baseUrl = '/assets/tiles/'
+  const images: Record<string, string> = {
+    start: `${baseUrl}tile_start.png`,
+    coins: `${baseUrl}tile_coin.png`,
+    key_shop: `${baseUrl}tile_key.png`,
+    bonus: `${baseUrl}tile_bonus.png`,
+    malus: `${baseUrl}tile_trap.png`,
+    minigame: `${baseUrl}tile_games.png`,
+    empty: `${baseUrl}tile_coin.png`,
+  }
+  return images[tile.kind] || `${baseUrl}tile_coin.png`
 }
 
 const getTileTypeName = (tile: Tile): string => {
@@ -90,14 +125,16 @@ const getTileTypeName = (tile: Tile): string => {
 
 <style scoped lang="scss">
 .panel {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 
   &--tile-info {
+    flex: 1 1 0;
     animation: slideIn 0.3s ease-out;
   }
 }
@@ -107,6 +144,7 @@ const getTileTypeName = (tile: Tile): string => {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -152,54 +190,113 @@ const getTileTypeName = (tile: Tile): string => {
   padding: 16px;
 }
 
-.tile-info-image {
-  width: 100%;
-  height: 100px;
+.tile-overview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tile-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  border-radius: 8px;
-  margin-bottom: 12px;
 
   img {
-    max-width: 70px;
-    max-height: 70px;
+    max-width: 60px;
+    max-height: 60px;
     object-fit: contain;
   }
 }
 
-.tile-info-details {
+.tile-tags {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
-.tile-info-row {
+.tag-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
   background: #f9fafb;
-  border-radius: 6px;
+  font-size: 12px;
+}
+
+.tag-label {
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 10px;
+}
+
+.tag-value {
+  font-weight: 600;
+  color: #111827;
+
+  &.positive {
+    color: #16a34a;
+  }
+
+  &.negative {
+    color: #ef4444;
+  }
+}
+
+.tile-description {
+  margin: 4px 0 14px 0;
   font-size: 13px;
+  color: #4b5563;
+}
 
-  .label {
-    font-weight: 600;
-    color: #6b7280;
-  }
+.players-section {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 
-  .value {
-    font-weight: 600;
-    color: #1f2937;
+.players-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 
-    &.positive {
-      color: #10b981;
-    }
+.players-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 
-    &.negative {
-      color: #ef4444;
-    }
-  }
+.player-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  font-size: 12px;
+}
+
+.player-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+}
+
+.player-name {
+  font-weight: 600;
+  color: #374151;
 }
 </style>

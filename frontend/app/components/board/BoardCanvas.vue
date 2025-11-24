@@ -1,12 +1,5 @@
 <template>
   <div class="board-canvas-wrapper">
-    <div class="board-canvas-controls">
-      <button @click="zoomIn" class="zoom-btn" title="Zoom avant">+</button>
-      <button @click="resetZoom" class="zoom-btn" title="Réinitialiser">⟲</button>
-      <button @click="zoomOut" class="zoom-btn" title="Zoom arrière">−</button>
-      <span class="zoom-level">{{ Math.round(zoom * 100) }}%</span>
-    </div>
-
     <div class="board-layout">
       <div class="sidebar sidebar--left">
         <GameStatus :current-player="currentGamePlayer" :players="gamePlayers"
@@ -16,6 +9,13 @@
       <div class="main-content">
         <div class="board-canvas-container" @wheel.prevent="handleWheel" @mousedown="startPan" @mousemove="handlePan"
           @mouseup="endPan" @mouseleave="endPan">
+          <div class="board-canvas-controls board-canvas-controls--overlay">
+            <button @click.stop="zoomIn" class="zoom-btn" title="Zoom avant">+</button>
+            <button @click.stop="resetZoom" class="zoom-btn" title="Réinitialiser">⟲</button>
+            <button @click.stop="zoomOut" class="zoom-btn" title="Zoom arrière">−</button>
+            <span class="zoom-level">{{ Math.round(zoom * 100) }}%</span>
+          </div>
+
           <div class="board-canvas" :style="canvasStyle">
             <BoardTile v-for="tile in board.tiles" :key="tile.id" :tile="tile" :left="offset + tile.x * tileSize"
               :top="offset + tile.y * tileSize" @click="focusTile" />
@@ -38,7 +38,7 @@
       <div class="sidebar sidebar--right">
         <ChatPanel :messages="chatMessages" :connected="connected" @send-message="sendChatMessage" />
 
-        <TileInfoPanel :tile="selectedTile" @close="selectedTile = null" />
+        <TileInfoPanel :tile="selectedTile" :players-on-tile="playersOnSelectedTile" @close="selectedTile = null" />
       </div>
     </div>
 
@@ -252,6 +252,11 @@ const currentGamePlayer = computed(() => {
   return gamePlayers.value.find(p => p.id === playerId.value) || gamePlayers.value[0]!
 })
 
+const playersOnSelectedTile = computed(() => {
+  if (!gameState.value || !selectedTile.value) return []
+  return gameState.value.players.filter(p => p.position === selectedTile.value!.id)
+})
+
 // Positions animées des joueurs (pour l'animation étape par étape)
 const animatedPositions = ref<Map<string, number>>(new Map())
 const isAnimating = ref<Map<string, boolean>>(new Map())
@@ -442,25 +447,6 @@ const focusTile = (tile: Tile, x: number, y: number) => {
 </script>
 
 <style scoped lang="scss">
-:root {
-  --primary-color: #6366f1;
-  --primary-hover: #4f46e5;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-}
-
 .board-canvas-wrapper {
   display: flex;
   flex-direction: column;
@@ -475,11 +461,18 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   display: flex;
   gap: 8px;
   align-items: center;
-  padding: 8px;
-  background: #fff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  width: fit-content;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+
+  &.board-canvas-controls--overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 20;
+  }
 }
 
 .zoom-btn {
@@ -518,9 +511,12 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: #f5f5f5;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.08), transparent 55%),
+    linear-gradient(135deg, #064e3b 0%, #047857 40%, #0f766e 100%);
   overflow: hidden;
   cursor: grab;
 
@@ -566,100 +562,6 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   height: 100%;
 }
 
-.panel {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: white;
-  border-bottom: 1px solid #818cf8;
-}
-
-.panel-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-}
-
-.panel-content {
-  padding: 12px;
-}
-
-.panel-footer {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-}
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &--primary {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-    color: white;
-    box-shadow: var(--shadow-sm);
-
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-  }
-
-  &--disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #9ca3af !important;
-
-    &:hover {
-      transform: none !important;
-      box-shadow: var(--shadow-sm) !important;
-    }
-  }
-
-  &--secondary {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-
-    &:hover:not(.btn--disabled) {
-      background: linear-gradient(135deg, #059669 0%, #047857 100%);
-    }
-  }
-
-  &--icon {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    background: var(--primary-color);
-    color: white;
-    font-size: 18px;
-
-    &:hover {
-      background: var(--primary-hover);
-    }
-  }
-}
-
 .turn-info {
   display: flex;
   align-items: center;
@@ -670,25 +572,6 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
-}
-
-.btn-close {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  font-size: 24px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
 }
 
 .game-panel {
