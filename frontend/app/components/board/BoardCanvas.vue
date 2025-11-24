@@ -180,6 +180,8 @@ watch(lastTileEffect, (effect) => {
     // Ce joueur est l'initiateur du mini-jeu : il choisit le jeu
     isMinigameInitiator.value = true
     isMinigameOpen.value = true
+    // Réinitialiser l'effet pour permettre un nouveau déclenchement plus tard
+    lastTileEffect.value = null
   }
 })
 

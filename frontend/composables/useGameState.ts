@@ -144,6 +144,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
       setTimeout(() => {
         minigameActive.value = false
         minigameResults.value = null
+        minigameType.value = null
       }, 6000)
     })
 

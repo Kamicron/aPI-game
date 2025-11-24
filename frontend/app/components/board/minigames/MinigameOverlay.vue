@@ -156,21 +156,22 @@ watch(() => props.isOpen, (isOpen) => {
     gameKey.value++
     gameResults.value = []
 
-    // Si un type de mini-jeu est imposé (vient du backend), le choisir
-    if (props.minigameType) {
-      const forcedGame = allGames.find(g => g.id === props.minigameType)
-      if (forcedGame && forcedGame.component) {
-        selectedGame.value = forcedGame
-        currentState.value = 'playing'
-        return
-      }
-    }
-
-    // Sinon, si le joueur est l'initiateur, passer par l'écran de sélection
+    // Si ce joueur est l'initiateur (vient de la case minigame), toujours passer par l'écran de sélection
+    // même si minigameType est encore renseigné d'un ancien mini-jeu.
     if (props.isInitiator) {
       currentState.value = 'selection'
       selectedGame.value = null
     } else {
+      // Pour les autres joueurs, si un type de mini-jeu est imposé (vient du backend), le choisir directement
+      if (props.minigameType) {
+        const forcedGame = allGames.find(g => g.id === props.minigameType)
+        if (forcedGame && forcedGame.component) {
+          selectedGame.value = forcedGame
+          currentState.value = 'playing'
+          return
+        }
+      }
+
       // Par défaut, on tombe sur le jeu de réflexes
       selectedGame.value = allGames.find(g => g.id === 'reaction') || null
       currentState.value = 'playing'
