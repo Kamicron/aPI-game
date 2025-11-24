@@ -140,22 +140,24 @@ const allGames: MinigameInfo[] = [
   {
     id: 'luck',
     name: 'Chance',
-    icon: '🎲',
+    icon: '🍀',
     description: 'Choisis le bon coffre',
     difficulty: 1,
     component: null // À implémenter
   }
 ]
 
-// Sélectionner 3 jeux aléatoires (dont au moins le jeu de réflexes pour l'instant)
-const availableGames = computed(() => {
+// Sélectionner 3 jeux aléatoires
+const availableGames = ref<MinigameInfo[]>([])
+
+const shuffleGames = () => {
   // Pour l'instant, on ne propose que les jeux implémentés
   const implementedGames = allGames.filter(g => g.component !== null)
 
   // Mélanger et prendre 3 (ou moins si pas assez de jeux)
   const shuffled = [...implementedGames].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, Math.min(3, shuffled.length))
-})
+  availableGames.value = shuffled.slice(0, Math.min(3, shuffled.length))
+}
 
 // Initialiser le jeu sélectionné (par défaut le jeu de réflexes)
 selectedGame.value = allGames.find(g => g.id === 'reaction') || null
@@ -166,6 +168,9 @@ watch(() => props.isOpen, (isOpen) => {
     // Incrémenter la clé pour forcer la recréation du composant
     gameKey.value++
     gameResults.value = []
+    
+    // Mélanger les jeux disponibles
+    shuffleGames()
 
     // Si ce joueur est l'initiateur (vient de la case minigame), toujours passer par l'écran de sélection
     // même si minigameType est encore renseigné d'un ancien mini-jeu.
