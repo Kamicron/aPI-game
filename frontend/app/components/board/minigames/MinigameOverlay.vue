@@ -1,6 +1,6 @@
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="minigame-overlay" @click.self="closeOverlay">
+    <div v-if="isOpen" class="minigame-overlay">
       <div class="overlay-content">
         <!-- Sélection du jeu -->
         <div v-if="currentState === 'selection'" class="game-selection">

@@ -190,12 +190,6 @@ watch(minigameActive, (active) => {
     console.log('🎮 Opening minigame overlay for all players!')
     // L'overlay doit être ouvert pour tous les joueurs pendant le mini-jeu
     isMinigameOpen.value = true
-  } else {
-    console.log('🎮 Closing minigame overlay')
-    // Fermer l'overlay après un délai pour voir les résultats
-    setTimeout(() => {
-      isMinigameOpen.value = false
-    }, 5000)
   }
 })
 
