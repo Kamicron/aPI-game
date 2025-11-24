@@ -38,8 +38,14 @@
 
         <!-- Résultats -->
         <div v-else-if="currentState === 'results'" class="game-results">
-          <MinigameResults :game-name="selectedGame?.name || ''" :results="gameResults"
-            :score-label="selectedGame?.id === 'reaction' ? 'ms (moy.)' : 'niveau(x)'" @close="closeOverlay" />
+          <MinigameResults :game-name="selectedGame?.name || ''" :results="gameResults" :score-label="selectedGame?.id === 'reaction'
+              ? 'ms (moy.)'
+              : selectedGame?.id === 'memory'
+                ? 'niveau(x)'
+                : selectedGame?.id === 'precision'
+                  ? 'points'
+                  : ''
+            " @close="closeOverlay" />
         </div>
       </div>
     </div>
@@ -50,6 +56,7 @@
 import { ref, computed, markRaw, watch } from 'vue'
 import ReactionGame from './games/ReactionGame.vue'
 import SimonGame from './games/SimonGame.vue'
+import PrecisionGame from './games/PrecisionGame.vue'
 import MinigameResults, { type MinigameResult } from './MinigameResults.vue'
 
 interface MinigameInfo {
@@ -109,7 +116,7 @@ const allGames: MinigameInfo[] = [
     icon: '🎯',
     description: 'Clique sur les cibles qui apparaissent',
     difficulty: 2,
-    component: null // À implémenter
+    component: markRaw(PrecisionGame)
   },
   {
     id: 'typing',

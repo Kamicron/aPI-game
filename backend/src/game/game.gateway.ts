@@ -555,6 +555,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           if (gameType === 'memory') {
             return b.score - a.score;
           }
+          // Jeux de type "points" (ex: précision) : plus grand score = meilleur
+          if (gameType === 'precision') {
+            return b.score - a.score;
+          }
           // Par défaut, garder un tri croissant
           return a.score - b.score;
         });
