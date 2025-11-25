@@ -27,13 +27,22 @@ export interface Player {
     safe?: number; // Nombre de tours restants
     multiplier?: number; // Nombre de tours restants
     lucky?: number; // Nombre de tours restants
+    doubleDice?: boolean; // Prochain lancer utilise 2 dés et choix du résultat
   };
 }
 
-export type BonusType = 
-  | 'double_dice' | 'extra_turn' | 'teleport' | 'precision'  // Commun
-  | 'shield' | 'safe' | 'swap' | 'multiplier'  // Rare
-  | 'jackpot' | 'free_key' | 'lucky';  // Légendaire
+export type BonusType =
+  | 'double_dice'
+  | 'extra_turn'
+  | 'teleport'
+  | 'precision' // Commun
+  | 'shield'
+  | 'safe'
+  | 'swap'
+  | 'multiplier' // Rare
+  | 'jackpot'
+  | 'free_key'
+  | 'lucky'; // Légendaire
 
 export type BonusRarity = 'common' | 'rare' | 'legendary';
 
@@ -75,12 +84,19 @@ interface JoinGamePayload {
 interface RollDicePayload {
   roomId: string;
   playerId: string;
+  result?: number; // Optionnel : résultat choisi (pour double_dice)
 }
 
 interface MovePlayerPayload {
   roomId: string;
   playerId: string;
   targetPosition: number;
+}
+
+interface SwapPlayersPayload {
+  roomId: string;
+  playerId: string;
+  targetPlayerId: string;
 }
 
 interface BuyKeyPayload {
@@ -119,9 +135,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Stockage en mémoire des parties (à remplacer par une DB plus tard)
   private games: Map<string, GameState> = new Map();
-  
+
   // Map pour tracker quel client est dans quelle room et quel joueur
-  private clientToPlayer: Map<string, { roomId: string; playerId: string }> = new Map();
+  private clientToPlayer: Map<string, { roomId: string; playerId: string }> =
+    new Map();
 
   constructor(
     private readonly boardService: BoardService,
@@ -135,27 +152,30 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log('Client disconnected from game:', client.id);
-    
+
     // Récupérer les infos du joueur
     const playerInfo = this.clientToPlayer.get(client.id);
-    
+
     if (playerInfo) {
       const { roomId, playerId } = playerInfo;
       const gameState = this.games.get(roomId);
-      
+
       if (gameState) {
         // Trouver le nom du joueur avant de le retirer
-        const player = gameState.players.find(p => p.id === playerId);
+        const player = gameState.players.find((p) => p.id === playerId);
         const playerName = player?.name || playerId;
-        
+
         // Retirer le joueur de la partie
-        gameState.players = gameState.players.filter(p => p.id !== playerId);
-        
+        gameState.players = gameState.players.filter((p) => p.id !== playerId);
+
         // Si c'était le tour de ce joueur, passer au suivant
-        if (gameState.currentTurnPlayerId === playerId && gameState.players.length > 0) {
+        if (
+          gameState.currentTurnPlayerId === playerId &&
+          gameState.players.length > 0
+        ) {
           gameState.currentTurnPlayerId = gameState.players[0].id;
         }
-        
+
         // Si plus de joueurs, supprimer la partie
         if (gameState.players.length === 0) {
           this.games.delete(roomId);
@@ -164,14 +184,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           // Sinon, notifier les autres joueurs
           this.server.to(roomId).emit('gameState', gameState);
           this.server.to(roomId).emit('playerLeft', { playerId, playerName });
-          
+
           // Envoyer un message système dans le chat
           this.emitSystemMessage(roomId, `${playerName} a quitté la partie`);
-          
+
           console.log(`Player ${playerName} disconnected from room ${roomId}`);
         }
       }
-      
+
       // Retirer le mapping
       this.clientToPlayer.delete(client.id);
     }
@@ -183,21 +203,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const { roomId, playerId, playerName, playerColor } = payload;
-    
+
     if (!roomId || !playerId) return;
 
     client.join(roomId);
-    
+
     // Tracker le client
     this.clientToPlayer.set(client.id, { roomId, playerId });
 
     // Récupérer ou créer la partie
     let gameState = this.games.get(roomId);
-    
+
     if (!gameState) {
       // Créer une nouvelle partie avec un plateau généré
       const board = this.boardService.generateBoard(roomId);
-      
+
       gameState = {
         roomId,
         players: [],
@@ -207,13 +227,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         status: 'waiting',
       };
       this.games.set(roomId, gameState);
-      
-      console.log(`New game created for room ${roomId} with ${board.tiles.length} tiles`);
+
+      console.log(
+        `New game created for room ${roomId} with ${board.tiles.length} tiles`,
+      );
     }
 
     // Vérifier si le joueur existe déjà
-    const existingPlayer = gameState.players.find(p => p.id === playerId);
-    
+    const existingPlayer = gameState.players.find((p) => p.id === playerId);
+
     if (!existingPlayer) {
       // Ajouter le nouveau joueur
       const newPlayer: Player = {
@@ -225,18 +247,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         keys: 0,
         bonuses: [],
       };
-      
+
       gameState.players.push(newPlayer);
-      
+
       // Envoyer un message système dans le chat
       this.emitSystemMessage(roomId, `${playerName} a rejoint la partie`);
-      
+
       console.log(`Player ${playerName} (${playerId}) joined room ${roomId}`);
     }
 
     // Envoyer l'état du jeu à tous les joueurs de la room
     this.server.to(roomId).emit('gameState', gameState);
-    
+
     // Notifier les autres joueurs
     client.to(roomId).emit('playerJoined', {
       playerId,
@@ -250,20 +272,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const { roomId, playerId } = payload;
-    
+
     if (!roomId) return;
 
     const gameState = this.games.get(roomId);
-    
+
     if (gameState) {
       // Retirer le joueur
-      gameState.players = gameState.players.filter(p => p.id !== playerId);
-      
+      gameState.players = gameState.players.filter((p) => p.id !== playerId);
+
       // Si c'était le tour de ce joueur, passer au suivant
-      if (gameState.currentTurnPlayerId === playerId && gameState.players.length > 0) {
+      if (
+        gameState.currentTurnPlayerId === playerId &&
+        gameState.players.length > 0
+      ) {
         gameState.currentTurnPlayerId = gameState.players[0].id;
       }
-      
+
       // Si plus de joueurs, supprimer la partie
       if (gameState.players.length === 0) {
         this.games.delete(roomId);
@@ -275,34 +300,52 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     client.leave(roomId);
-    
+
     // Retirer le tracking
     this.clientToPlayer.delete(client.id);
-    
+
     // Notifier les autres joueurs
     client.to(roomId).emit('playerLeft', { playerId });
-    
+
     console.log(`Player ${playerId} left room ${roomId}`);
   }
 
   @SubscribeMessage('rollDice')
   handleRollDice(@MessageBody() payload: RollDicePayload) {
-    const { roomId, playerId } = payload;
-    
+    const { roomId, playerId, result } = payload;
+
     const gameState = this.games.get(roomId);
     if (!gameState) return;
 
     // Vérifier que c'est le tour du joueur
     if (gameState.currentTurnPlayerId !== playerId) {
-      return { error: 'Ce n\'est pas votre tour' };
+      return { error: "Ce n'est pas votre tour" };
     }
 
     // Trouver le joueur
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
     if (!player) return;
 
-    // Lancer les dés (1 à 6)
-    const diceResult = Math.floor(Math.random() * 6) + 1;
+    // Déterminer le résultat du dé (1 à 6)
+    let diceResult: number;
+
+    // Si un résultat est fourni et que le joueur a le bonus double_dice actif,
+    // on utilise ce résultat et on consomme le bonus.
+    const hasDoubleDice = !!player.activeBonuses?.doubleDice;
+
+    if (
+      typeof result === 'number' &&
+      result >= 1 &&
+      result <= 6 &&
+      hasDoubleDice
+    ) {
+      diceResult = result;
+      // Consommer le bonus double_dice après utilisation
+      delete player.activeBonuses!.doubleDice;
+    } else {
+      // Lancer classique (1 à 6)
+      diceResult = Math.floor(Math.random() * 6) + 1;
+    }
 
     // Calculer la nouvelle position (plateau circulaire)
     const newPosition = (player.position + diceResult) % gameState.boardSize;
@@ -311,16 +354,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     player.position = newPosition;
 
     // Appliquer les effets de la tuile
-    const tile = gameState.board?.tiles.find(t => t.id === newPosition);
+    const tile = gameState.board?.tiles.find((t) => t.id === newPosition);
     let tileEffect = null;
-    
+
     if (tile) {
-      tileEffect = this.tileEffectsService.applyTileEffect(player, tile, diceResult);
+      tileEffect = this.tileEffectsService.applyTileEffect(
+        player,
+        tile,
+        diceResult,
+      );
       console.log(`Tile effect applied:`, tileEffect);
     }
 
+    // Décrémenter les bonus actifs du joueur à la fin de son tour
+    this.bonusEffectsService.decrementActiveBonuses(player);
+
     // Passer au joueur suivant
-    const currentIndex = gameState.players.findIndex(p => p.id === playerId);
+    const currentIndex = gameState.players.findIndex((p) => p.id === playerId);
     const nextIndex = (currentIndex + 1) % gameState.players.length;
     gameState.currentTurnPlayerId = gameState.players[nextIndex].id;
 
@@ -335,14 +385,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Envoyer l'état mis à jour
     this.server.to(roomId).emit('gameState', gameState);
-    
+
     this.server.to(roomId).emit('playerMoved', {
       playerId,
       position: newPosition,
       nextPlayerId: gameState.currentTurnPlayerId,
       tileEffect, // Envoyer l'effet de la tuile
     });
-    
+
     // Envoyer un message dans le chat si l'effet a un message
     if (tileEffect?.message) {
       this.emitSystemMessage(roomId, tileEffect.message);
@@ -354,32 +404,120 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('movePlayer')
   handleMovePlayer(@MessageBody() payload: MovePlayerPayload) {
     const { roomId, playerId, targetPosition } = payload;
-    
+
     const gameState = this.games.get(roomId);
     if (!gameState) return;
 
     // Trouver le joueur
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
     if (!player) return;
 
-    // Mettre à jour la position
+    // Mettre à jour la position (téléportation ou déplacement forcé)
     player.position = targetPosition;
 
-    // TODO: Appliquer les effets de la tuile (gain/perte pièces, clés, etc.)
+    // Appliquer les effets de la tuile atteinte
+    const tile = gameState.board?.tiles.find((t) => t.id === targetPosition);
+    let tileEffect = null;
+
+    if (tile) {
+      // Pour une téléportation, il n'y a pas de résultat de dé : on passe 0
+      tileEffect = this.tileEffectsService.applyTileEffect(player, tile, 0);
+      console.log(`Tile effect applied after movePlayer:`, tileEffect);
+    }
+
+    // Si le joueur possède un bonus de type teleport, on le consomme ici
+    const teleportIndex = player.bonuses.findIndex(
+      (b) => b.type === 'teleport',
+    );
+    if (teleportIndex !== -1) {
+      const [teleportBonus] = player.bonuses.splice(teleportIndex, 1);
+      this.emitSystemMessage(
+        roomId,
+        `${player.name} utilise ${teleportBonus.icon} Téléportation !`,
+      );
+    }
+
+    // Décrémenter les bonus actifs à la fin du tour
+    this.bonusEffectsService.decrementActiveBonuses(player);
 
     // Passer au joueur suivant
-    const currentIndex = gameState.players.findIndex(p => p.id === playerId);
+    const currentIndex = gameState.players.findIndex((p) => p.id === playerId);
     const nextIndex = (currentIndex + 1) % gameState.players.length;
     gameState.currentTurnPlayerId = gameState.players[nextIndex].id;
 
     // Envoyer l'état mis à jour
     this.server.to(roomId).emit('gameState', gameState);
-    
+
     this.server.to(roomId).emit('playerMoved', {
       playerId,
       position: targetPosition,
       nextPlayerId: gameState.currentTurnPlayerId,
+      tileEffect,
     });
+
+    // Envoyer un message dans le chat si l'effet a un message
+    if (tileEffect?.message) {
+      this.emitSystemMessage(roomId, tileEffect.message);
+    }
+  }
+
+  @SubscribeMessage('swapPlayers')
+  handleSwapPlayers(@MessageBody() payload: SwapPlayersPayload) {
+    const { roomId, playerId, targetPlayerId } = payload;
+
+    const gameState = this.games.get(roomId);
+    if (!gameState) return;
+
+    const player = gameState.players.find((p) => p.id === playerId);
+    const targetPlayer = gameState.players.find((p) => p.id === targetPlayerId);
+
+    if (!player || !targetPlayer) return;
+
+    if (playerId === targetPlayerId) {
+      return;
+    }
+
+    // Vérifier que le joueur possède bien un bonus d'échange
+    const swapIndex = player.bonuses.findIndex((b) => b.type === 'swap');
+    if (swapIndex === -1) {
+      return;
+    }
+
+    const [swapBonus] = player.bonuses.splice(swapIndex, 1);
+
+    // Échanger les positions
+    const tempPos = player.position;
+    player.position = targetPlayer.position;
+    targetPlayer.position = tempPos;
+
+    // Décrémenter les bonus actifs du joueur qui utilise le bonus
+    this.bonusEffectsService.decrementActiveBonuses(player);
+
+    // Passer au joueur suivant (après le joueur qui a utilisé le bonus)
+    const currentIndex = gameState.players.findIndex((p) => p.id === playerId);
+    const nextIndex = (currentIndex + 1) % gameState.players.length;
+    gameState.currentTurnPlayerId = gameState.players[nextIndex].id;
+
+    // Notifier tous les joueurs
+    this.server.to(roomId).emit('gameState', gameState);
+
+    this.server.to(roomId).emit('playerMoved', {
+      playerId,
+      position: player.position,
+      nextPlayerId: gameState.currentTurnPlayerId,
+    });
+
+    this.server.to(roomId).emit('playerMoved', {
+      playerId: targetPlayerId,
+      position: targetPlayer.position,
+      nextPlayerId: gameState.currentTurnPlayerId,
+    });
+
+    // Message système
+    this.emitSystemMessage(
+      roomId,
+      `${player.name} utilise ${swapBonus.icon} Échange et échange sa position avec ${targetPlayer.name} !`,
+    );
   }
 
   @SubscribeMessage('getGameState')
@@ -389,7 +527,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { roomId } = payload;
     const gameState = this.games.get(roomId);
-    
+
     if (gameState) {
       client.emit('gameState', gameState);
     }
@@ -398,29 +536,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('buyKey')
   handleBuyKey(@MessageBody() payload: BuyKeyPayload) {
     const { roomId, playerId } = payload;
-    
+
     const gameState = this.games.get(roomId);
     if (!gameState) {
       return { success: false, error: 'Partie introuvable' };
     }
 
     // Trouver le joueur
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
     if (!player) {
       return { success: false, error: 'Joueur introuvable' };
     }
 
     // Trouver la tuile actuelle
-    const currentTile = gameState.board?.tiles.find(t => t.id === player.position);
+    const currentTile = gameState.board?.tiles.find(
+      (t) => t.id === player.position,
+    );
     if (!currentTile || currentTile.kind !== 'key_shop') {
-      return { success: false, error: 'Vous n\'êtes pas sur une boutique de clés' };
+      return {
+        success: false,
+        error: "Vous n'êtes pas sur une boutique de clés",
+      };
     }
 
     const keyPrice = currentTile.keyPrice || 100;
 
     // Vérifier si le joueur a assez de pièces
     if (player.coins < keyPrice) {
-      this.emitSystemMessage(roomId, `${player.name} n'a pas assez de pièces pour acheter une clé (${keyPrice} pièces nécessaires)`);
+      this.emitSystemMessage(
+        roomId,
+        `${player.name} n'a pas assez de pièces pour acheter une clé (${keyPrice} pièces nécessaires)`,
+      );
       return { success: false, error: 'Pas assez de pièces' };
     }
 
@@ -430,7 +576,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Notifier tous les joueurs
     this.server.to(roomId).emit('gameState', gameState);
-    this.emitSystemMessage(roomId, `🔑 ${player.name} achète une clé pour ${keyPrice} pièces !`);
+    this.emitSystemMessage(
+      roomId,
+      `🔑 ${player.name} achète une clé pour ${keyPrice} pièces !`,
+    );
 
     return { success: true, newCoins: player.coins, newKeys: player.keys };
   }
@@ -438,7 +587,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('useBonus')
   handleUseBonus(@MessageBody() payload: UseBonusPayload) {
     const { roomId, playerId, bonusId } = payload;
-    
+
     const gameState = this.games.get(roomId);
     if (!gameState) {
       return { success: false, error: 'Partie introuvable' };
@@ -446,18 +595,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // Vérifier que c'est le tour du joueur
     if (gameState.currentTurnPlayerId !== playerId) {
-      return { success: false, error: 'Ce n\'est pas votre tour' };
+      return { success: false, error: "Ce n'est pas votre tour" };
     }
 
     // Trouver le joueur
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
     if (!player) {
       return { success: false, error: 'Joueur introuvable' };
     }
 
     // Utiliser le bonus
     const result = this.bonusEffectsService.useBonus(player, bonusId);
-    
+
     if (!result.success) {
       return result;
     }
@@ -494,12 +643,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(roomId).emit('minigameStarted', {
       gameType,
       initiatorId: playerId,
-      initiatorName: gameState.players.find(p => p.id === playerId)?.name,
+      initiatorName: gameState.players.find((p) => p.id === playerId)?.name,
     });
 
     this.emitSystemMessage(
       roomId,
-      `🎮 ${gameState.players.find(p => p.id === playerId)?.name} a lancé un mini-jeu : ${gameType} !`
+      `🎮 ${gameState.players.find((p) => p.id === playerId)?.name} a lancé un mini-jeu : ${gameType} !`,
     );
 
     return { success: true, message: 'Mini-jeu démarré' };
@@ -521,15 +670,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     gameState.minigame.playerScores.set(playerId, score);
     gameState.minigame.playersFinished.add(playerId);
 
-    const player = gameState.players.find(p => p.id === playerId);
+    const player = gameState.players.find((p) => p.id === playerId);
     console.log(`Player ${player?.name} finished with score: ${score}`);
 
     // Vérifier si tous les joueurs ont fini
-    const allPlayersFinished = gameState.players.every(p => 
-      gameState.minigame!.playersFinished.has(p.id)
+    const allPlayersFinished = gameState.players.every((p) =>
+      gameState.minigame!.playersFinished.has(p.id),
     );
 
-    console.log(`Players finished: ${gameState.minigame.playersFinished.size}/${gameState.players.length}`);
+    console.log(
+      `Players finished: ${gameState.minigame.playersFinished.size}/${gameState.players.length}`,
+    );
     console.log(`All players finished: ${allPlayersFinished}`);
 
     if (allPlayersFinished) {
@@ -538,7 +689,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const results = Array.from(gameState.minigame.playerScores.entries())
         .map(([pId, pScore]) => {
-          const p = gameState.players.find(player => player.id === pId);
+          const p = gameState.players.find((player) => player.id === pId);
           return {
             playerId: pId,
             playerName: p?.name || 'Unknown',
@@ -573,7 +724,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Distribuer les pièces
       for (const result of resultsWithCoins) {
-        const player = gameState.players.find(p => p.id === result.playerId);
+        const player = gameState.players.find((p) => p.id === result.playerId);
         if (player && result.coinsEarned > 0) {
           player.coins += result.coinsEarned;
         }
@@ -587,7 +738,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const winner = resultsWithCoins[0];
       this.emitSystemMessage(
         roomId,
-        `🏆 ${winner.playerName} remporte le mini-jeu et gagne ${winner.coinsEarned} pièces !`
+        `🏆 ${winner.playerName} remporte le mini-jeu et gagne ${winner.coinsEarned} pièces !`,
       );
 
       // Nettoyer l'état du mini-jeu

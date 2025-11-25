@@ -7,16 +7,16 @@ export function randomTileKind(index: number): TileKind {
   if (index === 0) return 'start';
 
   const weights: { kind: TileKind; weight: number }[] = [
-    { kind: 'coins', weight: 20 },      // 20%
-    { kind: 'minigame', weight: 45 },   // 45%
-    { kind: 'key_shop', weight: 5 },    // 5%
-    { kind: 'bonus', weight: 15 },      // 15%
-    { kind: 'malus', weight: 15 },      // 15%
+    { kind: 'coins', weight: 20 }, // 20%
+    { kind: 'minigame', weight: 5 }, // 45%
+    { kind: 'key_shop', weight: 5 }, // 5%
+    { kind: 'bonus', weight: 55 }, // 15%
+    { kind: 'malus', weight: 15 }, // 15%
   ];
 
   const total = weights.reduce((sum, w) => sum + w.weight, 0);
   const random = Math.random() * total;
-  
+
   let cumulative = 0;
   for (const entry of weights) {
     cumulative += entry.weight;

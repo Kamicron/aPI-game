@@ -21,9 +21,9 @@ enum CellType {
 export class BoardGeneratorService {
   private readonly DIRECTIONS: Point[] = [
     { x: 0, y: -1 }, // haut
-    { x: 0, y: 1 },  // bas
+    { x: 0, y: 1 }, // bas
     { x: -1, y: 0 }, // gauche
-    { x: 1, y: 0 },  // droite
+    { x: 1, y: 0 }, // droite
   ];
 
   generateBoard(
@@ -36,7 +36,11 @@ export class BoardGeneratorService {
     const minPathLength = 30;
     const maxGlobalAttempts = 100;
 
-    for (let globalAttempt = 0; globalAttempt < maxGlobalAttempts; globalAttempt++) {
+    for (
+      let globalAttempt = 0;
+      globalAttempt < maxGlobalAttempts;
+      globalAttempt++
+    ) {
       const tiles: Tile[] = [];
       const pathCells: Point[] = [];
       const occupied = new Set<string>();
@@ -56,12 +60,12 @@ export class BoardGeneratorService {
       while (attempts < maxAttempts) {
         // Essayer les 4 directions dans un ordre aléatoire
         const directions = [
-          { dx: 1, dy: 0 },   // droite
-          { dx: -1, dy: 0 },  // gauche
-          { dx: 0, dy: 1 },   // bas
-          { dx: 0, dy: -1 },  // haut
+          { dx: 1, dy: 0 }, // droite
+          { dx: -1, dy: 0 }, // gauche
+          { dx: 0, dy: 1 }, // bas
+          { dx: 0, dy: -1 }, // haut
         ];
-        
+
         // Mélanger les directions
         for (let i = directions.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -74,14 +78,23 @@ export class BoardGeneratorService {
           const nextY = currentY + dir.dy;
 
           // Vérifier limites
-          if (nextX < 2 || nextX >= gridWidth - 2 || nextY < 2 || nextY >= gridHeight - 2) {
+          if (
+            nextX < 2 ||
+            nextX >= gridWidth - 2 ||
+            nextY < 2 ||
+            nextY >= gridHeight - 2
+          ) {
             continue;
           }
 
           // Vérifier que la case n'est pas occupée
           if (occupied.has(`${nextX},${nextY}`)) {
             // Exception : si c'est le départ et qu'on a assez de cases, on peut boucler
-            if (nextX === startX && nextY === startY && pathCells.length >= minPathLength) {
+            if (
+              nextX === startX &&
+              nextY === startY &&
+              pathCells.length >= minPathLength
+            ) {
               console.log(`Boucle fermée avec ${pathCells.length} cases`);
               moved = true;
               attempts = maxAttempts; // Forcer la sortie
@@ -93,22 +106,27 @@ export class BoardGeneratorService {
           // Vérifier l'espacement : pas de collision orthogonale (sauf case précédente)
           let hasSpace = true;
           const orthogonalDirs = [
-            { x: 0, y: -1 },  // haut
-            { x: 0, y: 1 },   // bas
-            { x: -1, y: 0 },  // gauche
-            { x: 1, y: 0 },   // droite
+            { x: 0, y: -1 }, // haut
+            { x: 0, y: 1 }, // bas
+            { x: -1, y: 0 }, // gauche
+            { x: 1, y: 0 }, // droite
           ];
-          
+
           for (const checkDir of orthogonalDirs) {
             const checkX = nextX + checkDir.x;
             const checkY = nextY + checkDir.y;
-            
+
             // Ignorer la case d'où on vient
             if (checkX === currentX && checkY === currentY) continue;
-            
+
             // Ignorer le départ SEULEMENT si on a assez de cases pour boucler
-            if (checkX === startX && checkY === startY && pathCells.length >= minPathLength) continue;
-            
+            if (
+              checkX === startX &&
+              checkY === startY &&
+              pathCells.length >= minPathLength
+            )
+              continue;
+
             if (occupied.has(`${checkX},${checkY}`)) {
               hasSpace = false;
               break;
@@ -134,8 +152,11 @@ export class BoardGeneratorService {
 
       // Vérifier que la dernière case est bien adjacente au départ
       const lastCell = pathCells[pathCells.length - 1];
-      const distLastToStart = Math.abs(lastCell.x - startX) + Math.abs(lastCell.y - startY);
-      console.log(`Tentative ${globalAttempt + 1}: Dernière case: (${lastCell.x}, ${lastCell.y}), Distance: ${distLastToStart}`);
+      const distLastToStart =
+        Math.abs(lastCell.x - startX) + Math.abs(lastCell.y - startY);
+      console.log(
+        `Tentative ${globalAttempt + 1}: Dernière case: (${lastCell.x}, ${lastCell.y}), Distance: ${distLastToStart}`,
+      );
 
       // Si la boucle n'est pas fermée, recommencer
       if (distLastToStart !== 1) {
@@ -146,8 +167,10 @@ export class BoardGeneratorService {
       // Boucle fermée ! Créer les tiles
       console.log(`✓ Boucle fermée avec ${pathCells.length} cases`);
       console.log(`Première case: (${pathCells[0].x}, ${pathCells[0].y})`);
-      console.log(`Dernière case: (${pathCells[pathCells.length - 1].x}, ${pathCells[pathCells.length - 1].y})`);
-      
+      console.log(
+        `Dernière case: (${pathCells[pathCells.length - 1].x}, ${pathCells[pathCells.length - 1].y})`,
+      );
+
       for (let i = 0; i < pathCells.length; i++) {
         const cell = pathCells[i];
         const kind = randomTileKind(i);
@@ -178,7 +201,7 @@ export class BoardGeneratorService {
         tiles[0].keyPrice = undefined;
       }
 
-      const hasKeyShop = tiles.some(t => t.kind === 'key_shop');
+      const hasKeyShop = tiles.some((t) => t.kind === 'key_shop');
       if (!hasKeyShop && tiles.length > 1) {
         const midIndex = Math.floor(tiles.length / 2);
         tiles[midIndex].kind = 'key_shop';
@@ -327,14 +350,14 @@ export class BoardGeneratorService {
   ): boolean {
     // Vérifier toutes les cases autour (8 directions : haut, bas, gauche, droite + diagonales)
     const allDirections = [
-      { x: 0, y: -1 },  // haut
-      { x: 0, y: 1 },   // bas
-      { x: -1, y: 0 },  // gauche
-      { x: 1, y: 0 },   // droite
+      { x: 0, y: -1 }, // haut
+      { x: 0, y: 1 }, // bas
+      { x: -1, y: 0 }, // gauche
+      { x: 1, y: 0 }, // droite
       { x: -1, y: -1 }, // diag haut-gauche
-      { x: 1, y: -1 },  // diag haut-droite
-      { x: -1, y: 1 },  // diag bas-gauche
-      { x: 1, y: 1 },   // diag bas-droite
+      { x: 1, y: -1 }, // diag haut-droite
+      { x: -1, y: 1 }, // diag bas-gauche
+      { x: 1, y: 1 }, // diag bas-droite
     ];
 
     for (const dir of allDirections) {
@@ -669,7 +692,9 @@ export class BoardGeneratorService {
     }
 
     // GARANTIR au moins un key shop dans le circuit principal
-    const keyShopExists = mainPathTiles.some((tile) => tile.kind === 'key_shop');
+    const keyShopExists = mainPathTiles.some(
+      (tile) => tile.kind === 'key_shop',
+    );
     if (!keyShopExists && mainPathTiles.length > 1) {
       // Placer le key shop vers le milieu du circuit
       const keyShopIndex = Math.floor(mainPathTiles.length / 2);
@@ -703,5 +728,4 @@ export class BoardGeneratorService {
 
     return { id, tiles };
   }
-
 }

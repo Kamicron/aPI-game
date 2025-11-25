@@ -27,11 +27,37 @@
         </div>
 
         <div class="game-panel">
-          <BonusPanel :current-player="realCurrentPlayer" :is-my-turn="isMyTurn" @use-bonus="useBonusAction" />
+          <BonusPanel :current-player="realCurrentPlayer" :is-my-turn="isMyTurn" @use-bonus="handleUseBonus" />
 
           <GameControls :is-my-turn="isMyTurn" :is-on-key-shop="isOnKeyShop" :can-buy-key="canBuyKey"
-            :key-shop-price="keyShopPrice" :last-dice-roll="lastDiceRoll" :roll-id="rollId" @roll-dice="handleRollDice"
-            @buy-key="buyKey" />
+            :key-shop-price="keyShopPrice" :last-dice-roll="isDoubleDiceMode ? null : lastDiceRoll" :roll-id="rollId"
+            @roll-dice="handleRollDice" @buy-key="buyKey" />
+
+          <div v-if="isDoubleDiceMode && doubleDiceValues.length === 2" class="double-dice-panel">
+            <p class="double-dice-text">Choisis le résultat que tu veux utiliser :</p>
+            <div class="double-dice-list">
+              <button v-for="(val, idx) in doubleDiceValues" :key="`dd-${idx}`" class="double-dice-button"
+                @click="handleDoubleDiceChoice(val)">
+                <DiceD6 :value="val as 1 | 2 | 3 | 4 | 5 | 6" :roll-id="rollId"
+                  :background-color="idx === 0 ? '#6366f1' : '#6366f1'" />
+              </button>
+            </div>
+          </div>
+
+          <div v-if="isSwapMode" class="swap-panel">
+            <p class="swap-text">Choisis un joueur avec qui échanger de position :</p>
+            <ul class="swap-list">
+              <li v-for="p in otherPlayers" :key="p.id" class="swap-item">
+                <span class="swap-player-name" :style="{ color: p.color }">{{ p.name }}</span>
+                <button class="swap-btn swap-btn--ghost" type="button" @click="centerOnPlayer(p)">
+                  Centrer sur
+                </button>
+                <button class="swap-btn swap-btn--primary" type="button" @click="confirmSwap(p)">
+                  Échanger
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -56,6 +82,7 @@ import type { Board, Tile } from '../../../composables/useBoard';
 import { useGameChat } from '../../../composables/useGameChat';
 import { useGameState } from '../../../composables/useGameState';
 import { useRollDice } from '../../../composables/useRollDice';
+import DiceD6 from '../dices/dice-d6.vue';
 import BoardTile from './BoardTile.vue';
 import GameStatus, { type GamePlayer } from './GameStatus.vue';
 import type { Player } from './PlayerPawn.vue';
@@ -109,9 +136,11 @@ const {
   minigameType,
   minigameResults: minigameResultsFromState,
   rollDice: rollGameDice,
+  rollDiceWithResult: rollGameDiceWithResult,
   movePlayer,
   buyKey,
-  useBonus: useBonusAction
+  useBonus: useBonusAction,
+  swapPlayers,
 } = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
 
 const connected = computed(() => chatConnected.value && gameConnected.value)
@@ -125,12 +154,75 @@ const playerInfo = computed(() => ({
   color: playerColor.value || '#6366f1'
 }))
 
+const isDoubleDiceMode = ref(false)
+const isTeleportMode = ref(false)
+const isSwapMode = ref(false)
+
+const handleUseBonus = (bonusId: string) => {
+  const current = realCurrentPlayer.value
+  if (!current) {
+    useBonusAction(bonusId)
+    return
+  }
+
+  const bonus = current.bonuses.find(b => b.id === bonusId)
+  if (!bonus) {
+    useBonusAction(bonusId)
+    return
+  }
+
+  if (bonus.type === 'teleport') {
+    if (isTeleportMode.value) {
+      isTeleportMode.value = false
+      return
+    }
+    isTeleportMode.value = true
+    isSwapMode.value = false
+    useBonusAction(bonusId)
+    return
+  }
+
+  if (bonus.type === 'swap') {
+    if (isSwapMode.value) {
+      isSwapMode.value = false
+      return
+    }
+    isSwapMode.value = true
+    isTeleportMode.value = false
+    useBonusAction(bonusId)
+    return
+  }
+
+  useBonusAction(bonusId)
+}
+
 const handleRollDice = () => {
   if (!isMyTurn.value) {
     console.warn('Ce n\'est pas votre tour!')
     return
   }
+
+  if (realCurrentPlayer.value?.activeBonuses?.doubleDice) {
+    isDoubleDiceMode.value = true
+    rollDice(2, 6)
+    return
+  }
+
   rollGameDice()
+}
+
+const doubleDiceValues = computed(() => {
+  if (!isDoubleDiceMode.value) return []
+  return diceValues.value.slice(0, 2)
+})
+
+const handleDoubleDiceChoice = (value: number) => {
+  if (!isMyTurn.value) return
+  if (!isDoubleDiceMode.value) return
+
+  rollGameDiceWithResult(value)
+
+  isDoubleDiceMode.value = false
 }
 
 const closeMinigame = () => {
@@ -141,7 +233,6 @@ const closeMinigame = () => {
 const handleSubmitScore = (score: number) => {
   console.log('🎮 Submitting score:', score)
 
-  // Envoyer le score au backend
   if (gameConnected.value && socket.value) {
     socket.value.emit('minigameScore', {
       roomId: roomId.value,
@@ -151,7 +242,6 @@ const handleSubmitScore = (score: number) => {
   }
 }
 
-// Surveiller les événements de dés pour l'animation
 watch(lastDiceResult, (result) => {
   if (result !== null && lastDicePlayerId.value === playerId.value) {
     diceValues.value = [result]
@@ -162,7 +252,6 @@ watch(lastDiceResult, (result) => {
 const handleGameSelected = (gameId: string) => {
   console.log('🎮 Minigame selected:', gameId)
 
-  // L'initiateur envoie le type de mini-jeu choisi au backend
   if (!socket.value || !gameConnected.value) return
 
   socket.value.emit('minigameStart', {
@@ -172,25 +261,20 @@ const handleGameSelected = (gameId: string) => {
   })
 }
 
-// Surveiller les effets de tuiles pour démarrer le mini-jeu (seulement pour l'initiateur)
 watch(lastTileEffect, (effect) => {
   console.log('🎮 lastTileEffect changed:', effect)
   if (effect && effect.type === 'minigame') {
     console.log('🎮 Minigame tile reached, opening selection for initiator')
-    // Ce joueur est l'initiateur du mini-jeu : il choisit le jeu
     isMinigameInitiator.value = true
     isMinigameOpen.value = true
-    // Réinitialiser l'effet pour permettre un nouveau déclenchement plus tard
     lastTileEffect.value = null
   }
 })
 
-// Surveiller l'activation du mini-jeu (pour TOUS les joueurs)
 watch(minigameActive, (active) => {
   console.log('🎮 minigameActive changed:', active)
   if (active) {
     console.log('🎮 Opening minigame overlay for all players!')
-    // L'overlay doit être ouvert pour tous les joueurs pendant le mini-jeu
     isMinigameOpen.value = true
   }
 })
@@ -202,7 +286,6 @@ const lastDiceRoll = computed(() => {
   return null
 })
 
-// Vérifier si le joueur est sur une boutique de clés
 const isOnKeyShop = computed(() => {
   if (!realCurrentPlayer.value || !props.board) return false
   const currentTile = props.board.tiles.find((t: Tile) => t.id === realCurrentPlayer.value?.position)
@@ -219,12 +302,11 @@ const canBuyKey = computed(() => {
   return !!(isOnKeyShop.value && realCurrentPlayer.value && realCurrentPlayer.value.coins >= keyShopPrice.value)
 })
 
-// Utiliser les vraies données du gameState ou fallback sur mock
 const gamePlayers = computed<GamePlayer[]>(() => {
   if (gameState.value && gameState.value.players.length > 0) {
     return gameState.value.players
   }
-  // Fallback mock data si pas encore connecté
+
   return [
     {
       id: playerId.value,
@@ -253,43 +335,47 @@ const playersOnSelectedTile = computed(() => {
   return gameState.value.players.filter(p => p.position === selectedTile.value!.id)
 })
 
-// Positions animées des joueurs (pour l'animation étape par étape)
+const otherPlayers = computed(() => {
+  if (!gameState.value) return []
+  return gameState.value.players.filter(p => p.id !== playerId.value)
+})
+
 const animatedPositions = ref<Map<string, number>>(new Map())
 const isAnimating = ref<Map<string, boolean>>(new Map())
+const instantMovePlayers = ref<Set<string>>(new Set())
 
-// Initialiser et surveiller les changements de position
 watch(gameState, (newState, oldState) => {
   if (!newState) return
 
-  // Initialiser les positions pour les nouveaux joueurs
   for (const player of newState.players) {
     if (!animatedPositions.value.has(player.id)) {
       animatedPositions.value.set(player.id, player.position)
       isAnimating.value.set(player.id, false)
     } else {
-      // Détecter les changements de position
       const currentAnimatedPos = animatedPositions.value.get(player.id)!
       const isCurrentlyAnimating = isAnimating.value.get(player.id) || false
 
-      // Animer seulement si la position a changé et qu'on n'est pas déjà en train d'animer
       if (player.position !== currentAnimatedPos && !isCurrentlyAnimating) {
-        animatePlayerMovement(player.id, currentAnimatedPos, player.position)
+        if (instantMovePlayers.value.has(player.id)) {
+          animatedPositions.value.set(player.id, player.position)
+          isAnimating.value.set(player.id, false)
+          instantMovePlayers.value.delete(player.id)
+        } else {
+          animatePlayerMovement(player.id, currentAnimatedPos, player.position)
+        }
       }
     }
   }
 }, { immediate: true, deep: true })
 
-// Fonction pour animer le déplacement avec une animation fluide
 const animatePlayerMovement = (playerId: string, fromPos: number, toPos: number) => {
   const boardSize = gameState.value?.boardSize || 50
 
-  // Marquer comme en cours d'animation
   isAnimating.value.set(playerId, true)
 
-  // Calculer le chemin (gérer le plateau circulaire)
   let steps = toPos - fromPos
   if (steps < 0) {
-    steps += boardSize // Gérer le retour au début
+    steps += boardSize
   }
 
   if (steps === 0) {
@@ -297,15 +383,13 @@ const animatePlayerMovement = (playerId: string, fromPos: number, toPos: number)
     return
   }
 
-  // Animation fluide avec requestAnimationFrame
-  const duration = steps * 250 // 250ms par case
+  const duration = steps * 250
   const startTime = Date.now()
 
   const animate = () => {
     const elapsed = Date.now() - startTime
     const progress = Math.min(elapsed / duration, 1)
 
-    // Fonction d'easing pour une animation plus naturelle
     const easeInOutCubic = (t: number) => {
       return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
     }
@@ -319,7 +403,6 @@ const animatePlayerMovement = (playerId: string, fromPos: number, toPos: number)
     if (progress < 1) {
       requestAnimationFrame(animate)
     } else {
-      // S'assurer que la position finale est exacte
       animatedPositions.value.set(playerId, toPos)
       isAnimating.value.set(playerId, false)
     }
@@ -328,7 +411,6 @@ const animatePlayerMovement = (playerId: string, fromPos: number, toPos: number)
   requestAnimationFrame(animate)
 }
 
-// Mapper les positions animées aux tuiles du plateau
 const playersByTile = computed(() => {
   const result = new Map<number, Player[]>()
 
@@ -336,7 +418,6 @@ const playersByTile = computed(() => {
     return result
   }
 
-  // Grouper les joueurs par position animée
   for (const player of gameState.value.players) {
     const tileId = animatedPositions.value.get(player.id) || player.position
     const tile = props.board.tiles.find((t: Tile) => t.id === tileId)
@@ -367,7 +448,6 @@ const canvasStyle = computed(() => ({
   transition: isPanning.value ? 'none' : 'transform 0.2s ease-out',
 }))
 
-// Fonctions de zoom
 const zoomIn = () => {
   zoom.value = Math.min(zoom.value + 0.2, 3)
 }
@@ -422,13 +502,12 @@ const endPan = () => {
   isPanning.value = false
 }
 
-const focusTile = (tile: Tile, x: number, y: number) => {
-  if (isPanning.value) return
+const centerOnPosition = (tileId: number) => {
+  const tile = props.board.tiles.find((t: Tile) => t.id === tileId)
+  if (!tile) return
 
-  selectedTile.value = tile
-
-  const tileCenterX = offset + x * tileSize + tileSize / 2
-  const tileCenterY = offset + y * tileSize + tileSize / 2
+  const tileCenterX = offset + tile.x * tileSize + tileSize / 2
+  const tileCenterY = offset + tile.y * tileSize + tileSize / 2
 
   const targetZoom = 2
 
@@ -439,6 +518,34 @@ const focusTile = (tile: Tile, x: number, y: number) => {
   panY.value = (containerCenterY - tileCenterY * targetZoom) / targetZoom
 
   zoom.value = targetZoom
+}
+
+const focusTile = (tile: Tile, x: number, y: number) => {
+  if (isPanning.value) return
+
+  if (isTeleportMode.value && isMyTurn.value) {
+    movePlayer(tile.id)
+    isTeleportMode.value = false
+    return
+  }
+
+  selectedTile.value = tile
+  centerOnPosition(tile.id)
+}
+
+const centerOnPlayer = (player) => {
+  centerOnPosition(player.position)
+}
+
+const confirmSwap = (player) => {
+  if (!isMyTurn.value) return
+  if (!isSwapMode.value) return
+
+  instantMovePlayers.value.add(playerId.value)
+  instantMovePlayers.value.add(player.id)
+
+  swapPlayers(player.id)
+  isSwapMode.value = false
 }
 </script>
 

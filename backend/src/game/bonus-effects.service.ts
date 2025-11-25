@@ -34,7 +34,8 @@ export class BonusEffectsService {
 
     switch (bonus.type) {
       case 'double_dice':
-        // Sera géré lors du lancer de dés
+        // Active un lancer spécial (double dés avec choix du résultat)
+        player.activeBonuses.doubleDice = true;
         result = {
           success: true,
           message: `${player.name} active ${bonus.icon} Dés Doubles ! Lance 2 dés.`,

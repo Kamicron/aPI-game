@@ -28,13 +28,27 @@ export class TileEffectsService {
 
       case 'coins':
         if (tile.coinsChange) {
-          effect.coinsChange = tile.coinsChange;
-          player.coins += tile.coinsChange;
+          let coinsChange = tile.coinsChange;
+
+          // Appliquer le coffre-fort : empêche les pertes de pièces
+          if (coinsChange < 0 && player.activeBonuses?.safe !== undefined) {
+            coinsChange = 0;
+          }
+
+          // Appliquer le multiplicateur sur les gains de pièces
+          if (coinsChange > 0 && player.activeBonuses?.multiplier !== undefined) {
+            coinsChange = coinsChange * 2;
+          }
+
+          effect.coinsChange = coinsChange;
+          player.coins += coinsChange;
           
-          if (tile.coinsChange > 0) {
-            effect.message = `${dicePrefix}Gagne ${tile.coinsChange} pièces ! 💰`;
+          if (coinsChange > 0) {
+            effect.message = `${dicePrefix}Gagne ${coinsChange} pièces ! 💰`;
+          } else if (coinsChange < 0) {
+            effect.message = `${dicePrefix}Perd ${Math.abs(coinsChange)} pièces ! 💸`;
           } else {
-            effect.message = `${dicePrefix}Perd ${Math.abs(tile.coinsChange)} pièces ! 💸`;
+            effect.message = `${dicePrefix}Tes pièces sont protégées ! 🔒`;
           }
         }
         break;
@@ -56,13 +70,40 @@ export class TileEffectsService {
         break;
 
       case 'malus':
+        // Bouclier : annule le prochain malus
+        if (player.activeBonuses?.shield) {
+          effect.message = `${dicePrefix}Ton bouclier te protège du malus ! 🛡️`;
+          delete player.activeBonuses.shield;
+          break;
+        }
+
+        // Chance : transforme le malus en bonus de pièces
+        if (player.activeBonuses?.lucky !== undefined) {
+          const gain = Math.floor(Math.random() * 20) + 10;
+          effect.coinsChange = gain;
+          player.coins += gain;
+          effect.message = `${dicePrefix}Grâce à ta chance, le malus se transforme en bonus de ${gain} pièces ! 🍀`;
+          break;
+        }
+
         const malusType = Math.random() > 0.5 ? 'coins' : 'keys';
         
         if (malusType === 'coins') {
-          const loss = Math.floor(Math.random() * 30) + 10;
+          let loss = Math.floor(Math.random() * 30) + 10;
+
+          // Coffre-fort : protège les pièces contre ce malus
+          if (player.activeBonuses?.safe !== undefined) {
+            loss = 0;
+          }
+
           effect.coinsChange = -loss;
           player.coins = Math.max(0, player.coins - loss);
-          effect.message = `${dicePrefix}Tombe sur un malus ⚠️ et perd ${loss} pièces !`;
+
+          if (loss > 0) {
+            effect.message = `${dicePrefix}Tombe sur un malus ⚠️ et perd ${loss} pièces !`;
+          } else {
+            effect.message = `${dicePrefix}Ton coffre-fort protège tes pièces ! 🔒`;
+          }
         } else {
           if (player.keys > 0) {
             effect.keysChange = -1;

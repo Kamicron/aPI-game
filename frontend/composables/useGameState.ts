@@ -26,6 +26,13 @@ export interface Player {
   keys: number
   bonuses: Bonus[]
   avatar?: string
+  activeBonuses?: {
+    shield?: boolean
+    safe?: number
+    multiplier?: number
+    lucky?: number
+    doubleDice?: boolean
+  }
 }
 
 export interface GameState {
@@ -167,6 +174,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     socket.value.emit('rollDice', { roomId, playerId })
   }
 
+  const rollDiceWithResult = (result: number) => {
+    if (!socket.value) return
+    socket.value.emit('rollDice', { roomId, playerId, result })
+  }
+
   const movePlayer = (targetPosition: number) => {
     if (!socket.value) return
     socket.value.emit('movePlayer', { roomId, playerId, targetPosition })
@@ -175,6 +187,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
   const buyKey = () => {
     if (!socket.value) return
     socket.value.emit('buyKey', { roomId, playerId })
+  }
+
+  const swapPlayers = (targetPlayerId: string) => {
+    if (!socket.value) return
+    socket.value.emit('swapPlayers', { roomId, playerId, targetPlayerId })
   }
 
   const useBonus = (bonusId: string) => {
@@ -215,9 +232,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     connect,
     disconnect,
     rollDice,
+    rollDiceWithResult,
     movePlayer,
     buyKey,
     useBonus,
+    swapPlayers,
     getGameState,
   }
 }

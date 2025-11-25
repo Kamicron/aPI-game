@@ -6,28 +6,28 @@
 export interface BoardGenerationConfig {
   /** Largeur de la grille */
   gridWidth: number;
-  
+
   /** Hauteur de la grille */
   gridHeight: number;
-  
+
   /** Longueur minimale du circuit principal */
   minMainPathLength: number;
-  
+
   /** Nombre minimum de raccourcis à générer */
   minShortcuts: number;
-  
+
   /** Longueur maximale d'un raccourci */
   maxShortcutLength: number;
-  
+
   /** Distance minimale pour qu'un raccourci soit valide */
   minShortcutDistance: number;
-  
+
   /** Nombre maximum de tentatives globales avant fallback */
   maxGlobalAttempts: number;
-  
+
   /** Nombre maximum de tentatives pour créer des raccourcis */
   maxShortcutAttempts: number;
-  
+
   /** Nombre maximum d'itérations de backtracking */
   maxBacktrackAttempts: number;
 }

@@ -31,7 +31,29 @@
           </div>
         </div>
       </div>
-      
+
+      <div v-if="hasActiveBonuses" class="active-bonuses-section">
+        <h4 class="subsection-title">Bonus actifs</h4>
+        <div class="bonus-list">
+          <div v-if="currentPlayer.activeBonuses?.shield" class="bonus-item">
+            <span class="bonus-icon">🛡️</span>
+            <span class="bonus-name">Bouclier</span>
+          </div>
+          <div v-if="currentPlayer.activeBonuses?.safe !== undefined" class="bonus-item">
+            <span class="bonus-icon">🔒</span>
+            <span class="bonus-name">Coffre-Fort ({{ currentPlayer.activeBonuses?.safe }} tours)</span>
+          </div>
+          <div v-if="currentPlayer.activeBonuses?.multiplier !== undefined" class="bonus-item">
+            <span class="bonus-icon">💎</span>
+            <span class="bonus-name">Multiplicateur x2 ({{ currentPlayer.activeBonuses?.multiplier }} tours)</span>
+          </div>
+          <div v-if="currentPlayer.activeBonuses?.lucky !== undefined" class="bonus-item">
+            <span class="bonus-icon">🎰</span>
+            <span class="bonus-name">Chance ({{ currentPlayer.activeBonuses?.lucky }} tours)</span>
+          </div>
+        </div>
+      </div>
+
       <div class="turn-section">
         <div class="turn-indicator">
           <div class="turn-label">Tour de</div>
@@ -43,30 +65,26 @@
 
       <div class="leaderboard-section">
         <h3 class="section-title">Classement</h3>
-      <div class="leaderboard">
-        <div 
-          v-for="(player, index) in rankedPlayers" 
-          :key="player.id" 
-          class="leaderboard-item"
-          :class="{ 'leaderboard-item--current': player.id === currentPlayer.id }"
-        >
-          <div class="rank">{{ index + 1 }}</div>
-          <div class="player-avatar" :style="{ 
-            backgroundColor: player.avatar ? 'transparent' : player.color,
-            borderColor: player.color 
-          }">
-            <img v-if="player.avatar" :src="player.avatar" :alt="player.name" />
-            <span v-else class="player-initial">{{ player.name[0] }}</span>
-          </div>
-          <div class="player-info">
-            <div class="player-name">{{ player.name }}</div>
-            <div class="player-resources">
-              <span class="resource">🔑 {{ player.keys }}</span>
-              <span class="resource">💰 {{ player.coins }}</span>
+        <div class="leaderboard">
+          <div v-for="(player, index) in rankedPlayers" :key="player.id" class="leaderboard-item"
+            :class="{ 'leaderboard-item--current': player.id === currentPlayer.id }">
+            <div class="rank">{{ index + 1 }}</div>
+            <div class="player-avatar" :style="{
+              backgroundColor: player.avatar ? 'transparent' : player.color,
+              borderColor: player.color
+            }">
+              <img v-if="player.avatar" :src="player.avatar" :alt="player.name" />
+              <span v-else class="player-initial">{{ player.name[0] }}</span>
+            </div>
+            <div class="player-info">
+              <div class="player-name">{{ player.name }}</div>
+              <div class="player-resources">
+                <span class="resource">🔑 {{ player.keys }}</span>
+                <span class="resource">💰 {{ player.coins }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   </div>
@@ -89,6 +107,12 @@ export interface GamePlayer {
   coins: number
   keys: number
   bonuses: Bonus[]
+  activeBonuses?: {
+    shield?: boolean
+    safe?: number
+    multiplier?: number
+    lucky?: number
+  }
 }
 
 const props = defineProps<{
@@ -108,6 +132,12 @@ const rankedPlayers = computed(() => {
     }
     return b.coins - a.coins
   })
+})
+
+const hasActiveBonuses = computed(() => {
+  const ab = props.currentPlayer.activeBonuses
+  if (!ab) return false
+  return !!(ab.shield || ab.safe !== undefined || ab.multiplier !== undefined || ab.lucky !== undefined)
 })
 </script>
 
@@ -218,6 +248,11 @@ const rankedPlayers = computed(() => {
 }
 
 .bonuses-section {
+  padding-top: 8px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.active-bonuses-section {
   padding-top: 8px;
   border-top: 1px solid #e0e0e0;
 }
