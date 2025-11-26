@@ -1,6 +1,7 @@
 // =======================================
 // aPi-game - Design tokens & thèmes
 // =======================================
+@use "sass:map";
 
 // -------------------------------
 // Brand & base
@@ -32,7 +33,7 @@ $apg-gray-200: #e2e8f0;
 $apg-gray-100: #f1f5f9;
 $apg-gray-50:  #f8fafc;
 
-// Radius & ombres (pour les cartes, boutons, dés, etc.)
+// Radius & ombres
 $apg-radius-sm: 6px;
 $apg-radius-md: 12px;
 $apg-radius-lg: 18px;
@@ -53,6 +54,13 @@ $apg-font-weight-medium: 500;
 $apg-font-weight-semibold: 600;
 $apg-font-weight-bold: 700;
 
+// margin
+$apg-margin-sm: 4px;
+$apg-margin-md: 8px;
+$apg-margin-lg: 16px;
+$apg-margin-xl: 24px;
+$apg-margin-2xl: 32px;
+
 // -------------------------------
 // Thèmes (semantic tokens)
 // -------------------------------
@@ -62,20 +70,21 @@ $apg-font-weight-bold: 700;
 $apg-theme-light: (
   bg:           $apg-gray-50,
   bg-muted:     $apg-gray-100,
-  surface:      #ffffff,
-  surface-alt:  #fefefe,
+  surface:      $apg-gray-100,
+  surface-alt:  $apg-gray-50,
 
   border-subtle: $apg-gray-200,
   border-strong: $apg-gray-300,
 
-  text-main:   $apg-gray-900,
-  text-muted:  $apg-gray-500,
-  text-soft:   $apg-gray-400,
-  text-on-primary: #ffffff,
+  text-main:      $apg-gray-900,
+  text-muted:     $apg-gray-500,
+  text-soft:      $apg-gray-400,
+  text-opposite:  $apg-gray-700,
+  text-on-primary:$apg-gray-50,
 
   primary:        $apg-color-primary,
   primary-soft:   $apg-color-primary-soft,
-  primary-border: #4b32d6,
+  primary-border: $apg-gray-600,
 
   pi:          $apg-color-pi,
   accent:      $apg-color-accent,
@@ -88,31 +97,32 @@ $apg-theme-light: (
 );
 
 $apg-theme-dark: (
-  bg:           #050816,
-  bg-muted:     #050b1f,
+  bg:           $apg-gray-900,
+  bg-muted:     $apg-gray-800,
   surface:      $apg-gray-800,
-  surface-alt:  #020617,
+  surface-alt:  $apg-gray-900,
 
-  border-subtle: rgba(148, 163, 184, 0.25),
-  border-strong: rgba(148, 163, 184, 0.45),
+  border-subtle: $apg-gray-600,
+  border-strong: $apg-gray-500,
 
-  text-main:   #e5e7eb,
-  text-muted:  #9ca3af,
-  text-soft:   #6b7280,
-  text-on-primary: #ffffff,
+  text-main:      $apg-gray-100,
+  text-muted:     $apg-gray-400,
+  text-soft:      $apg-gray-500,
+  text-opposite:  $apg-gray-900,
+  text-on-primary:$apg-gray-50,
 
-  primary:        #b29cff,
-  primary-soft:   rgba(108, 92, 231, 0.2),
-  primary-border: #7c6aff,
+  primary:        $apg-color-primary,
+  primary-soft:   $apg-color-primary-soft,
+  primary-border: $apg-gray-500,
 
-  pi:          #37f2b0,
-  accent:      #ffd94d,
-  success:     #4ade80,
-  warning:     #facc15,
-  danger:      #fb7185,
+  pi:          $apg-color-pi,
+  accent:      $apg-color-accent,
+  success:     $apg-color-success,
+  warning:     $apg-color-warning,
+  danger:      $apg-color-danger,
 
-  shadow-soft:   0 10px 30px rgba(0, 0, 0, 0.65),
-  shadow-strong: 0 18px 60px rgba(0, 0, 0, 0.9),
+  shadow-soft:   $apg-shadow-soft,
+  shadow-strong: $apg-shadow-strong,
 );
 
 // -------------------------------
@@ -120,30 +130,31 @@ $apg-theme-dark: (
 // -------------------------------
 @mixin apg-export-theme($theme-map) {
   // Backgrounds & surfaces
-  --apg-bg:            map.get($theme-map, bg);
-  --apg-bg-muted:      map.get($theme-map, bg-muted);
-  --apg-surface:       map.get($theme-map, surface);
-  --apg-surface-alt:   map.get($theme-map, surface-alt);
+  --apg-bg:            #{map.get($theme-map, bg)};
+  --apg-bg-muted:      #{map.get($theme-map, bg-muted)};
+  --apg-surface:       #{map.get($theme-map, surface)};
+  --apg-surface-alt:   #{map.get($theme-map, surface-alt)};
 
   // Border
-  --apg-border-subtle: map.get($theme-map, border-subtle);
-  --apg-border-strong: map.get($theme-map, border-strong);
+  --apg-border-subtle: #{map.get($theme-map, border-subtle)};
+  --apg-border-strong: #{map.get($theme-map, border-strong)};
 
   // Text
-  --apg-text-main:      map.get($theme-map, text-main);
-  --apg-text-muted:     map.get($theme-map, text-muted);
-  --apg-text-soft:      map.get($theme-map, text-soft);
-  --apg-text-on-primary:map.get($theme-map, text-on-primary);
+  --apg-text-main:      #{map.get($theme-map, text-main)};
+  --apg-text-muted:     #{map.get($theme-map, text-muted)};
+  --apg-text-soft:      #{map.get($theme-map, text-soft)};
+  --apg-text-opposite:  #{map.get($theme-map, text-opposite)};
+  --apg-text-on-primary:#{map.get($theme-map, text-on-primary)};
 
   // Brand / état
-  --apg-primary:        map.get($theme-map, primary);
-  --apg-primary-soft:   map.get($theme-map, primary-soft);
-  --apg-primary-border: map.get($theme-map, primary-border);
-  --apg-pi:             map.get($theme-map, pi);
-  --apg-accent:         map.get($theme-map, accent);
-  --apg-success:        map.get($theme-map, success);
-  --apg-warning:        map.get($theme-map, warning);
-  --apg-danger:         map.get($theme-map, danger);
+  --apg-primary:        #{map.get($theme-map, primary)};
+  --apg-primary-soft:   #{map.get($theme-map, primary-soft)};
+  --apg-primary-border: #{map.get($theme-map, primary-border)};
+  --apg-pi:             #{map.get($theme-map, pi)};
+  --apg-accent:         #{map.get($theme-map, accent)};
+  --apg-success:        #{map.get($theme-map, success)};
+  --apg-warning:        #{map.get($theme-map, warning)};
+  --apg-danger:         #{map.get($theme-map, danger)};
 
   // Shadow & radius (peuvent rester constants, mais on les expose quand même)
   --apg-radius-sm:   #{$apg-radius-sm};
@@ -151,8 +162,8 @@ $apg-theme-dark: (
   --apg-radius-lg:   #{$apg-radius-lg};
   --apg-radius-pill: #{$apg-radius-pill};
 
-  --apg-shadow-soft:   map.get($theme-map, shadow-soft);
-  --apg-shadow-strong: map.get($theme-map, shadow-strong);
+  --apg-shadow-soft:   #{map.get($theme-map, shadow-soft)};
+  --apg-shadow-strong: #{map.get($theme-map, shadow-strong)};
 
   // Fonts
   --apg-font-sans:   #{$apg-font-family-sans};

@@ -1,0 +1,82 @@
+@use "./variables.scss" as *;
+
+.apg-input {
+  width: 100%;
+  padding: $apg-margin-md $apg-margin-lg;
+  border: 1px solid var(--apg-primary-border);
+  border-radius: $apg-radius-md;
+  font-size: $apg-font-size-md;
+  background: var(--apg-surface);
+  color: var(--apg-text-main);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $apg-color-primary;
+    box-shadow: 0 0 0 3px rgba($apg-color-primary, 0.3);
+  }
+
+  &::placeholder {
+    color: var(--apg-text-soft);
+  }
+}
+
+.apg-label {
+  display: block;
+  font-size: $apg-font-size-sm;
+  font-weight: $apg-font-weight-regular;
+  color: var(--apg-text-muted);
+  margin-bottom: 8px;
+}
+
+.apg-btn {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: $apg-margin-sm;
+  padding: $apg-margin-md $apg-margin-xl;
+  border-radius: $apg-radius-md;
+  border: none;
+  font-size: $apg-font-size-md;
+  font-weight: $apg-font-weight-semibold;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.apg-btn--primary {
+  background: var(--apg-primary);
+  color: var(--apg-text-on-primary);
+  box-shadow: var(--apg-shadow-soft);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--apg-shadow-strong);
+  }
+}
+
+.apg-btn--secondary {
+  background: var(--apg-primary-soft);
+  color: var(--apg-text-on-primary);
+  border: 1px solid var(--apg-primary-soft);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--apg-shadow-soft);
+  }
+}
+
+.apg-btn--outline {
+  background: transparent;
+  color: var(--apg-text-main);
+  border: 1px solid var(--apg-primary-border);
+
+  &:hover:not(:disabled) {
+    background: var(--apg-primary-soft);
+  }
+}

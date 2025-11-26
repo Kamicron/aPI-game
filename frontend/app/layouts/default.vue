@@ -79,8 +79,4 @@ html[data-theme='dark'] .apg-layout {
   cursor: pointer;
   transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
 }
-
-.apg-main {
-  padding: 24px;
-}
 </style>

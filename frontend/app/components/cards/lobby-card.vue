@@ -11,11 +11,13 @@
 const props = defineProps<{ title: string }>()
 </script>
 
-<style lang='scss' scoped>
+<style lang='scss'>
 .lobby-card {
   background: var(--apg-surface);
   border-radius: $apg-radius-lg;
   box-shadow: var(--apg-shadow-soft);
+  border: 1px solid var(--apg-primary-border);
+  padding: $apg-margin-2xl;
 
   &__title {
     font-size: $apg-font-size-2xl;

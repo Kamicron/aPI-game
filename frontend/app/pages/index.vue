@@ -5,31 +5,31 @@
       <p class="lobby-subtitle">Créez ou rejoignez une partie</p>
 
       <div class="lobby-content">
-        <!-- Créer une partie -->
 
         <lobby-card title="Créer une partie">
           <div class="form-group">
-            <label for="playerName">Votre pseudo</label>
-            <input id="playerName" v-model="playerName" type="text" placeholder="Entrez votre pseudo" maxlength="20" />
+            <label class="apg-label" for="playerName">Votre pseudo</label>
+            <input id="playerName" v-model="playerName" type="text" class="apg-input" placeholder="Entrez votre pseudo"
+              maxlength="20" />
           </div>
-          <button class="btn btn-primary" @click="createRoom" :disabled="!playerName.trim()">
+          <button class="apg-btn apg-btn--primary" @click="createRoom" :disabled="!playerName.trim()">
             Créer une partie
           </button>
         </lobby-card>
 
-        <!-- Rejoindre une partie -->
         <lobby-card title="Rejoindre une partie">
           <div class="form-group">
-            <label for="joinPlayerName">Votre pseudo</label>
-            <input id="joinPlayerName" v-model="joinPlayerName" type="text" placeholder="Entrez votre pseudo"
-              maxlength="20" />
+            <label class="apg-label" for="joinPlayerName">Votre pseudo</label>
+            <input id="joinPlayerName" v-model="joinPlayerName" type="text" class="apg-input"
+              placeholder="Entrez votre pseudo" maxlength="20" />
           </div>
           <div class="form-group">
-            <label for="roomCode">Code de la partie</label>
-            <input id="roomCode" v-model="roomCode" type="text" placeholder="Ex: ABC123" maxlength="6"
+            <label class="apg-label" for="roomCode">Code de la partie</label>
+            <input id="roomCode" v-model="roomCode" type="text" class="apg-input" placeholder="Ex: ABC123" maxlength="6"
               @input="roomCode = roomCode.toUpperCase()" />
           </div>
-          <button class="btn btn-secondary" @click="joinRoom" :disabled="!joinPlayerName.trim() || !roomCode.trim()">
+          <button class="apg-btn apg-btn--secondary" @click="joinRoom"
+            :disabled="!joinPlayerName.trim() || !roomCode.trim()">
             Rejoindre
           </button>
         </lobby-card>
@@ -60,12 +60,10 @@ async function createRoom() {
   const newRoomCode = generateRoomCode()
   const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
 
-  // Stocker les infos dans le localStorage
   localStorage.setItem('playerName', playerName.value)
   localStorage.setItem('playerId', playerId)
   localStorage.setItem('roomCode', newRoomCode)
 
-  // Rediriger vers la page de lobby
   await navigateTo(`/lobby?room=${newRoomCode}`)
 }
 
@@ -74,12 +72,10 @@ async function joinRoom() {
 
   const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
 
-  // Stocker les infos dans le localStorage
   localStorage.setItem('playerName', joinPlayerName.value)
   localStorage.setItem('playerId', playerId)
   localStorage.setItem('roomCode', roomCode.value)
 
-  // Rediriger vers la page de lobby
   await navigateTo(`/lobby?room=${roomCode.value}`)
 }
 </script>
@@ -122,83 +118,7 @@ async function joinRoom() {
   gap: 24px;
 }
 
-.lobby-card {
-  background: var(--apg-surface);
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: red;
-}
-
-.card-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 24px 0;
-}
-
 .form-group {
   margin-bottom: 20px;
-
-  label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 8px;
-  }
-
-  input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    &::placeholder {
-      color: #9ca3af;
-    }
-  }
-}
-
-.btn {
-  width: 100%;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-  }
-
-  &-secondary {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
-    }
-  }
 }
 </style>
