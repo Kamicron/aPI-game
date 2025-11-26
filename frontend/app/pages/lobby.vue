@@ -163,7 +163,12 @@ watch(
   () => gameState.value?.status,
   async (status) => {
     if (status === 'playing') {
-      await navigateTo(`/board?room=${roomCode}`)
+      const mode = (gameState.value as any)?.mode || 'board'
+      if (mode === 'arcade') {
+        await navigateTo(`/arcade?room=${roomCode}`)
+      } else {
+        await navigateTo(`/board?room=${roomCode}`)
+      }
     }
   },
 )
