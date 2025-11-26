@@ -569,16 +569,27 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('startGame')
   handleStartGame(@MessageBody() payload: StartGamePayload) {
-    const { roomId } = payload;
+    const { roomId, playerId, mode } = payload;
 
     const gameState = this.games.get(roomId);
     if (!gameState) return;
+
+    // Seul l'hôte peut démarrer la partie
+    if (gameState.hostPlayerId !== playerId) {
+      this.emitSystemMessage(
+        roomId,
+        `${gameState.players.find((p) => p.id === playerId)?.name ?? 'Un joueur'} a tenté de démarrer la partie mais n'est pas l'hôte.`,
+      );
+      return;
+    }
 
     if (gameState.status === 'playing') {
       return;
     }
 
     gameState.status = 'playing';
+    // Définir le mode de jeu (par défaut: plateau classique)
+    gameState.mode = mode || 'board';
 
     this.server.to(roomId).emit('gameState', gameState);
   }
@@ -693,6 +704,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!gameState) {
       return { success: false, message: 'Partie non trouvée' };
+    }
+
+    // Seul l'hôte peut lancer un mini-jeu (board ou arcade)
+    if (gameState.hostPlayerId !== playerId) {
+      this.emitSystemMessage(
+        roomId,
+        `${gameState.players.find((p) => p.id === playerId)?.name ?? 'Un joueur'} a tent� de lancer un mini-jeu mais n'est pas l'h�te.`,
+      );
+      return { success: false, message: '' };
     }
 
     // Initialiser l'état du mini-jeu
