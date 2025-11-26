@@ -10,7 +10,7 @@
             <p class="lobby-room-code-label">Code de la partie</p>
             <div class="lobby-room-code-row">
               <span class="lobby-room-code">{{ roomCode }}</span>
-              <button type="button" class="btn btn-copy" @click="copyRoomCode">
+              <button type="button" class="apg-btn apg-btn--outline lobby-copy-btn" @click="copyRoomCode">
                 Copier le code
               </button>
             </div>
@@ -45,7 +45,7 @@
           </div>
 
           <div class="lobby-footer-right">
-            <button type="button" class="btn btn-primary lobby-start-btn" @click="startGame">
+            <button type="button" class="apg-btn apg-btn--primary lobby-start-btn" @click="startGame">
               Démarrer la partie
             </button>
           </div>
@@ -419,47 +419,48 @@ watch(
   margin-top: 20px;
 }
 
-.btn {
-  padding: 14px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+.lobby-copy-btn {
+  width: auto;
+  padding-inline: $apg-margin-lg;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
+.copy-toast {
+  position: fixed;
+  left: 50%;
+  bottom: $apg-margin-xl;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: $apg-margin-sm;
+  padding: $apg-margin-sm $apg-margin-lg;
+  border-radius: $apg-radius-lg;
+  background: var(--apg-surface-alt);
+  color: var(--apg-text-main);
+  box-shadow: var(--apg-shadow-soft);
+  border: 1px solid var(--apg-border-subtle);
+  font-size: $apg-font-size-sm;
 }
 
-.btn-secondary {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
-  }
+.copy-toast__icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--apg-success);
+  color: var(--apg-text-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
 }
 
-.btn-copy {
-  background: #eef2ff;
-  color: #4f46e5;
+.copy-toast-fade-enter-active,
+.copy-toast-fade-leave-active {
+  transition: opacity 150ms ease, transform 150ms ease;
+}
 
-  &:hover {
-    background: #e0e7ff;
-  }
+.copy-toast-fade-enter-from,
+.copy-toast-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 8px);
 }
 </style>
