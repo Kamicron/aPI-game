@@ -38,9 +38,50 @@
         </div>
 
         <div v-if="isHost" class="lobby-footer">
-          <button type="button" class="btn btn-primary lobby-start-btn" @click="startGame">
-            Démarrer la partie
-          </button>
+          <div class="lobby-footer-left">
+            <button type="button" class="settings-btn" title="Paramètres de la partie" @click="toggleSettings">
+              ⚙
+            </button>
+          </div>
+
+          <div class="lobby-footer-right">
+            <button type="button" class="btn btn-primary lobby-start-btn" @click="startGame">
+              Démarrer la partie
+            </button>
+          </div>
+        </div>
+
+        <!-- Panneau simple de paramètres de partie -->
+        <div v-if="isHost && showSettings" class="lobby-settings-panel">
+          <h3 class="settings-title">Paramètres de la partie</h3>
+
+          <div class="settings-section">
+            <p class="settings-label">Mode de jeu</p>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input v-model="gameMode" type="radio" value="board" />
+                <span>Plateau (Party Game)</span>
+              </label>
+              <label class="settings-option">
+                <input v-model="gameMode" type="radio" value="arcade" />
+                <span>Mini-jeux enchaînés (Arcade)</span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="gameMode === 'arcade'" class="settings-section">
+            <p class="settings-label">Séquence des mini-jeux</p>
+            <div class="settings-options">
+              <label class="settings-option">
+                <input v-model="arcadeSequenceMode" type="radio" value="random" />
+                <span>Aléatoire à chaque manche</span>
+              </label>
+              <label class="settings-option">
+                <input v-model="arcadeSequenceMode" type="radio" value="manual" />
+                <span>Choix manuel dans la liste</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -88,6 +129,10 @@ const normalizedColor = computed(() => {
   return isValid ? withHash : defaultColor
 })
 
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+}
+
 const copyRoomCode = async () => {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
@@ -100,7 +145,13 @@ const copyRoomCode = async () => {
 
 const startGame = () => {
   if (!socket.value || !isHost.value) return
-  socket.value.emit('startGame', { roomId: roomCode, playerId })
+
+  socket.value.emit('startGame', {
+    roomId: roomCode,
+    playerId,
+    mode: gameMode.value,
+    arcadeSequenceMode: gameMode.value === 'arcade' ? arcadeSequenceMode.value : undefined,
+  })
 }
 
 const onColorInputChange = () => {
@@ -266,6 +317,77 @@ watch(
   width: auto;
 }
 
+.lobby-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lobby-footer-right {
+  display: flex;
+  align-items: center;
+}
+
+.settings-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: #eef2ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+
+  &:hover {
+    background: #e0e7ff;
+    transform: translateY(-1px);
+  }
+}
+
+.lobby-settings-panel {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.settings-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px 0;
+  color: #111827;
+}
+
+.settings-section {
+  margin-bottom: 10px;
+}
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 4px;
+}
+
+.settings-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
 .lobby-empty {
   margin-top: 4px;
   font-size: 13px;
@@ -274,7 +396,8 @@ watch(
 
 .lobby-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 20px;
 }
 
