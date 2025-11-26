@@ -71,7 +71,13 @@ const colorInput = ref(defaultColor)
 const { gameState, socket, changeColor } = useGameState(roomCode, playerId, playerName, defaultColor)
 
 const players = computed(() => gameState.value?.players || [])
-const isHost = computed(() => gameState.value?.currentTurnPlayerId === playerId)
+// L'hôte est fourni par le backend via hostPlayerId (créateur de la room)
+const isHost = computed(() => gameState.value?.hostPlayerId === playerId)
+
+// Paramètres de partie (stockés localement pour l'instant)
+const showSettings = ref(false)
+const gameMode = ref<'board' | 'arcade'>('board')
+const arcadeSequenceMode = ref<'random' | 'manual'>('random')
 
 const normalizedColor = computed(() => {
   const value = colorInput.value.trim()

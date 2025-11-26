@@ -38,6 +38,7 @@ export interface Player {
 export interface GameState {
   roomId: string
   players: Player[]
+  hostPlayerId: string
   currentTurnPlayerId: string
   board: any
   boardSize: number
