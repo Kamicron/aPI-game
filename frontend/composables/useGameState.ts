@@ -199,6 +199,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     socket.value.emit('useBonus', { roomId, playerId, bonusId })
   }
 
+  const changeColor = (color: string) => {
+    if (!socket.value) return
+    socket.value.emit('changeColor', { roomId, playerId, color })
+  }
+
   const getGameState = () => {
     if (!socket.value) return
     if (!socket.value || !connected.value) {
@@ -237,6 +242,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     buyKey,
     useBonus,
     swapPlayers,
+    changeColor,
     getGameState,
   }
 }
