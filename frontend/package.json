@@ -16,6 +16,7 @@
     "socket.io-client": "^4.8.1",
     "vite": "^7.2.4",
     "vue": "^3.5.24",
-    "vue-router": "^4.6.3"
+    "vue-router": "^4.6.3",
+    "vue3-modern-toast": "^1.0.32"
   }
 }
