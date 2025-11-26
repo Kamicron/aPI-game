@@ -10,13 +10,7 @@
           <h2 class="card-title">Créer une partie</h2>
           <div class="form-group">
             <label for="playerName">Votre pseudo</label>
-            <input 
-              id="playerName" 
-              v-model="playerName" 
-              type="text" 
-              placeholder="Entrez votre pseudo"
-              maxlength="20"
-            />
+            <input id="playerName" v-model="playerName" type="text" placeholder="Entrez votre pseudo" maxlength="20" />
           </div>
           <button class="btn btn-primary" @click="createRoom" :disabled="!playerName.trim()">
             Créer une partie
@@ -28,30 +22,15 @@
           <h2 class="card-title">Rejoindre une partie</h2>
           <div class="form-group">
             <label for="joinPlayerName">Votre pseudo</label>
-            <input 
-              id="joinPlayerName" 
-              v-model="joinPlayerName" 
-              type="text" 
-              placeholder="Entrez votre pseudo"
-              maxlength="20"
-            />
+            <input id="joinPlayerName" v-model="joinPlayerName" type="text" placeholder="Entrez votre pseudo"
+              maxlength="20" />
           </div>
           <div class="form-group">
             <label for="roomCode">Code de la partie</label>
-            <input 
-              id="roomCode" 
-              v-model="roomCode" 
-              type="text" 
-              placeholder="Ex: ABC123"
-              maxlength="6"
-              @input="roomCode = roomCode.toUpperCase()"
-            />
+            <input id="roomCode" v-model="roomCode" type="text" placeholder="Ex: ABC123" maxlength="6"
+              @input="roomCode = roomCode.toUpperCase()" />
           </div>
-          <button 
-            class="btn btn-secondary" 
-            @click="joinRoom" 
-            :disabled="!joinPlayerName.trim() || !roomCode.trim()"
-          >
+          <button class="btn btn-secondary" @click="joinRoom" :disabled="!joinPlayerName.trim() || !roomCode.trim()">
             Rejoindre
           </button>
         </div>
