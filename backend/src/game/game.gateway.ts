@@ -67,12 +67,16 @@ export interface MinigameState {
 export interface GameState {
   roomId: string;
   players: Player[];
+  // Identifiant du joueur hôte (créateur de la room)
+  hostPlayerId: string;
   currentTurnPlayerId: string;
   board: any; // Type du board depuis board.types.ts
   boardSize: number; // Nombre de tuiles sur le plateau
   status: 'waiting' | 'playing' | 'finished';
   winner?: string;
   minigame?: MinigameState; // État du mini-jeu en cours
+  // Mode de jeu: plateau complet (party game) ou enchaînement de mini-jeux (arcade)
+  mode?: 'board' | 'arcade';
 }
 
 interface JoinGamePayload {
@@ -141,6 +145,7 @@ interface BombermanBombPayload {
 interface StartGamePayload {
   roomId: string;
   playerId: string;
+  mode?: 'board' | 'arcade';
 }
 
 interface ChangeColorPayload {
@@ -249,6 +254,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameState = {
         roomId,
         players: [],
+        hostPlayerId: playerId,
         currentTurnPlayerId: playerId,
         board: board,
         boardSize: board.tiles.length, // Nombre réel de tuiles du plateau généré
