@@ -122,6 +122,17 @@ interface MinigameScorePayload {
   score: number;
 }
 
+interface StartGamePayload {
+  roomId: string;
+  playerId: string;
+}
+
+interface ChangeColorPayload {
+  roomId: string;
+  playerId: string;
+  color: string;
+}
+
 @WebSocketGateway({
   cors: {
     origin: process.env.FRONT_URL || 'http://localhost:3000',
@@ -531,6 +542,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (gameState) {
       client.emit('gameState', gameState);
     }
+  }
+
+  @SubscribeMessage('startGame')
+  handleStartGame(@MessageBody() payload: StartGamePayload) {
+    const { roomId } = payload;
+
+    const gameState = this.games.get(roomId);
+    if (!gameState) return;
+
+    if (gameState.status === 'playing') {
+      return;
+    }
+
+    gameState.status = 'playing';
+
+    this.server.to(roomId).emit('gameState', gameState);
+  }
+
+  @SubscribeMessage('changeColor')
+  handleChangeColor(@MessageBody() payload: ChangeColorPayload) {
+    const { roomId, playerId, color } = payload;
+
+    const gameState = this.games.get(roomId);
+    if (!gameState) return;
+
+    const player = gameState.players.find((p) => p.id === playerId);
+    if (!player) return;
+
+    player.color = color;
+
+    this.server.to(roomId).emit('gameState', gameState);
   }
 
   @SubscribeMessage('buyKey')
