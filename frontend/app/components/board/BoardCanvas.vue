@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, provide, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import type { Board, Tile } from '../../../composables/useBoard';
 import { useGameChat } from '../../../composables/useGameChat';
@@ -141,7 +141,16 @@ const {
   buyKey,
   useBonus: useBonusAction,
   swapPlayers,
+  bombermanMap,
 } = useGameState(roomId.value, playerId.value, playerName.value, playerColor.value || '#6366f1')
+
+// Rendre des infos de jeu génériques disponibles pour les mini-jeux via provide/inject
+provide('roomId', roomId)
+provide('currentPlayerId', playerId)
+provide('players', computed(() => gameState.value?.players ?? []))
+provide('socket', socket)
+// Map Bomberman envoyée par le backend (utilisée par BomberGame)
+provide('bombermanMap', bombermanMap)
 
 const connected = computed(() => chatConnected.value && gameConnected.value)
 

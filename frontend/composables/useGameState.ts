@@ -55,6 +55,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
   const minigameActive = ref(false)
   const minigameType = ref<string | null>(null)
   const minigameResults = ref<any[] | null>(null)
+  const bombermanMap = ref<any | null>(null)
   
   const currentPlayer = computed(() => {
     return gameState.value?.players.find(p => p.id === playerId) || null
@@ -155,6 +156,11 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
       }, 6000)
     })
 
+    socket.value.on('bombermanInit', (data: { roomId: string; map: any }) => {
+      console.log('💣 Bomberman init received:', data)
+      bombermanMap.value = data.map
+    })
+
     socket.value.on('connect_error', (error) => {
       console.error('Connection error:', error)
     })
@@ -234,6 +240,7 @@ export function useGameState(roomId: string, playerId: string, playerName: strin
     minigameActive,
     minigameType,
     minigameResults,
+    bombermanMap,
     connect,
     disconnect,
     rollDice,

@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { ChatModule } from './chat/chat.module';
 import { BoardModule } from './board/board.module';
 import { GameModule } from './game/game.module';
+import { BomberModule } from './bomber/bomber.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { GameModule } from './game/game.module';
     ChatModule,
     BoardModule,
     GameModule,
+    BomberModule,
   ],
   controllers: [AppController],
   providers: [AppService],

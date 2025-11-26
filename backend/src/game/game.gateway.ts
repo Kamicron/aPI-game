@@ -12,6 +12,7 @@ import { Injectable } from '@nestjs/common';
 import { BoardService } from '../board/board.service';
 import { TileEffectsService } from './tile-effects.service';
 import { BonusEffectsService } from './bonus-effects.service';
+import { BomberService } from '../bomber/bomber.service';
 
 export interface Player {
   id: string;
@@ -122,6 +123,21 @@ interface MinigameScorePayload {
   score: number;
 }
 
+interface BombermanMovePayload {
+  roomId: string;
+  playerId: string;
+  x: number;
+  y: number;
+}
+
+interface BombermanBombPayload {
+  roomId: string;
+  playerId: string;
+  bombId: string;
+  x: number;
+  y: number;
+}
+
 interface StartGamePayload {
   roomId: string;
   playerId: string;
@@ -155,6 +171,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly boardService: BoardService,
     private readonly tileEffectsService: TileEffectsService,
     private readonly bonusEffectsService: BonusEffectsService,
+    private readonly bomberService: BomberService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -681,6 +698,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       startedAt: new Date(),
     };
 
+    // Si c'est Bomberman, générer et envoyer la map via WebSocket
+    if (gameType === 'bomberman') {
+      const playerCount = gameState.players.length;
+      const bomberMap = this.bomberService.generateMap(playerCount);
+
+      this.server.to(roomId).emit('bombermanInit', {
+        roomId,
+        map: bomberMap,
+      });
+    }
+
     // Notifier TOUS les joueurs que le mini-jeu commence
     this.server.to(roomId).emit('minigameStarted', {
       gameType,
@@ -748,8 +776,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           if (gameType === 'memory') {
             return b.score - a.score;
           }
-          // Jeux de type "points" (ex: précision) : plus grand score = meilleur
-          if (gameType === 'precision') {
+          // Jeux de type "points" (ex: précision, bomberman) : plus grand score = meilleur
+          if (gameType === 'precision' || gameType === 'bomberman') {
             return b.score - a.score;
           }
           // Par défaut, garder un tri croissant
@@ -796,6 +824,51 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return { success: true, message: 'Score enregistré' };
+  }
+
+  @SubscribeMessage('bombermanMove')
+  handleBombermanMove(@MessageBody() payload: BombermanMovePayload) {
+    const { roomId, playerId, x, y } = payload;
+
+    const gameState = this.games.get(roomId);
+    if (
+      !gameState ||
+      !gameState.minigame ||
+      gameState.minigame.gameType !== 'bomberman'
+    ) {
+      return;
+    }
+
+    // Pour l'instant, le serveur est seulement un relais :
+    // on se contente de diffuser le mouvement à tous les joueurs de la room.
+    this.server.to(roomId).emit('bombermanPlayerMoved', {
+      roomId,
+      playerId,
+      x,
+      y,
+    });
+  }
+
+  @SubscribeMessage('bombermanBomb')
+  handleBombermanBomb(@MessageBody() payload: BombermanBombPayload) {
+    const { roomId, playerId, bombId, x, y } = payload;
+
+    const gameState = this.games.get(roomId);
+    if (
+      !gameState ||
+      !gameState.minigame ||
+      gameState.minigame.gameType !== 'bomberman'
+    ) {
+      return;
+    }
+
+    this.server.to(roomId).emit('bombermanBombPlaced', {
+      roomId,
+      playerId,
+      bombId,
+      x,
+      y,
+    });
   }
 
   // Méthode utilitaire pour envoyer un message système dans le chat

@@ -60,6 +60,7 @@ import ReactionGame from './games/ReactionGame.vue'
 import SimonGame from './games/SimonGame.vue'
 import PrecisionGame from './games/PrecisionGame.vue'
 import FarkleGame from './games/FarkleGame.vue'
+import BomberGame from './games/BomberGame.vue'
 import MinigameResults, { type MinigameResult } from './MinigameResults.vue'
 
 interface MinigameInfo {
@@ -122,6 +123,14 @@ const allGames: MinigameInfo[] = [
     component: markRaw(PrecisionGame)
   },
   {
+    id: 'bomberman',
+    name: 'Bomberman',
+    icon: '💣',
+    description: 'Déplace-toi dans une arène remplie de blocs destructibles',
+    difficulty: 3,
+    component: markRaw(BomberGame)
+  },
+  {
     id: 'farkle',
     name: 'Farkle',
     icon: '🎲',
@@ -168,7 +177,7 @@ watch(() => props.isOpen, (isOpen) => {
     // Incrémenter la clé pour forcer la recréation du composant
     gameKey.value++
     gameResults.value = []
-    
+
     // Mélanger les jeux disponibles
     shuffleGames()
 
