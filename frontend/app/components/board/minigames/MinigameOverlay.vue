@@ -181,13 +181,15 @@ watch(() => props.isOpen, (isOpen) => {
     // Mélanger les jeux disponibles
     shuffleGames()
 
-    // Si ce joueur est l'initiateur (vient de la case minigame), toujours passer par l'écran de sélection
-    // même si minigameType est encore renseigné d'un ancien mini-jeu.
-    if (props.isInitiator) {
+    // Si ce joueur est l'initiateur :
+    // - s'il n'y a PAS de minigameType imposé, on lui laisse l'écran de sélection (cas party-game classique)
+    // - s'il y a un minigameType imposé (cas arcade ou démarrage ciblé), on lance directement ce jeu.
+    if (props.isInitiator && !props.minigameType) {
       currentState.value = 'selection'
       selectedGame.value = null
     } else {
-      // Pour les autres joueurs, si un type de mini-jeu est imposé (vient du backend), le choisir directement
+      // Pour les autres joueurs, ou pour un initiateur avec minigameType imposé :
+      // si un type de mini-jeu est imposé (vient du backend), le choisir directement
       if (props.minigameType) {
         const forcedGame = allGames.find(g => g.id === props.minigameType)
         if (forcedGame && forcedGame.component) {
@@ -210,6 +212,20 @@ watch(() => props.results, (results) => {
     console.log('🎮 Results received:', results)
     gameResults.value = results
     currentState.value = 'results'
+  }
+})
+
+// Si un type de mini-jeu est imposé APRÈS l'ouverture de l'overlay
+// (par exemple, l'initiateur a ouvert avant de recevoir minigameType),
+// basculer directement sur ce jeu dès que l'info arrive.
+watch(() => props.minigameType, (newType) => {
+  if (!newType) return
+  if (!props.isOpen) return
+
+  const forcedGame = allGames.find(g => g.id === newType)
+  if (forcedGame && forcedGame.component) {
+    selectedGame.value = forcedGame
+    currentState.value = 'playing'
   }
 })
 
