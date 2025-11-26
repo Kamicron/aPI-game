@@ -3,7 +3,6 @@
     <div class="lobby-container">
       <h1 class="lobby-title">🎲 API Game</h1>
       <p class="lobby-subtitle">Créez ou rejoignez une partie</p>
-
       <div class="lobby-content">
 
         <lobby-card title="Créer une partie">
