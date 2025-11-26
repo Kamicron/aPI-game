@@ -57,31 +57,31 @@ function generateRoomCode(): string {
 
 async function createRoom() {
   if (!playerName.value.trim()) return
-  
+
   const newRoomCode = generateRoomCode()
   const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
-  
+
   // Stocker les infos dans le localStorage
   localStorage.setItem('playerName', playerName.value)
   localStorage.setItem('playerId', playerId)
   localStorage.setItem('roomCode', newRoomCode)
-  
-  // Rediriger vers la page de jeu
-  await navigateTo(`/board?room=${newRoomCode}`)
+
+  // Rediriger vers la page de lobby
+  await navigateTo(`/lobby?room=${newRoomCode}`)
 }
 
 async function joinRoom() {
   if (!joinPlayerName.value.trim() || !roomCode.value.trim()) return
-  
+
   const playerId = `player-${Math.random().toString(36).slice(2, 11)}`
-  
+
   // Stocker les infos dans le localStorage
   localStorage.setItem('playerName', joinPlayerName.value)
   localStorage.setItem('playerId', playerId)
   localStorage.setItem('roomCode', roomCode.value)
-  
-  // Rediriger vers la page de jeu
-  await navigateTo(`/board?room=${roomCode.value}`)
+
+  // Rediriger vers la page de lobby
+  await navigateTo(`/lobby?room=${roomCode.value}`)
 }
 </script>
 
