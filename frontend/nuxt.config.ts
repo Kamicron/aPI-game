@@ -7,4 +7,13 @@ export default defineNuxtConfig({
       { path: '~/components', pathPrefix: false },
     ],
   },
+vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: '@use "~/assets/variables.scss" as *;',
+        },
+      },
+    },
+  },
 })

@@ -1,11 +1,24 @@
 <template>
-  <div>
+  <NuxtLayout>
     <NuxtPage />
-  </div>
+  </NuxtLayout>
 </template>
 
 <style lang="scss">
+@use "./assets/variables.scss" as *;
+@import "./assets/reset.css";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
+
+:root,
+body,
+.apg-layout,
+.lobby-card,
+button,
+input,
+textarea {
+  transition: background-color 250ms ease, color 250ms ease,
+    border-color 250ms ease, box-shadow 250ms ease;
+}
 
 :root {
   --primary-color: #6366f1;

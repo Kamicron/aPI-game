@@ -1,0 +1,173 @@
+// =======================================
+// aPi-game - Design tokens & thèmes
+// =======================================
+
+// -------------------------------
+// Brand & base
+// -------------------------------
+$apg-font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+  "Segoe UI", sans-serif;
+$apg-font-family-title: "Baloo", $apg-font-family-sans; // remplace par ta vraie police si besoin
+
+// Couleurs principales (brand)
+$apg-color-primary:       #0565b4;
+$apg-color-primary-soft:  #5b97c9; 
+
+$apg-color-pi:            #e4c308; 
+$apg-color-accent:        #f97316; 
+
+$apg-color-danger:        #ef4444; 
+$apg-color-success:       #16a34a; 
+$apg-color-warning:       #f59e0b; 
+
+// Neutres
+$apg-gray-900: #020617;
+$apg-gray-800: #0f172a;
+$apg-gray-700: #1e293b;
+$apg-gray-600: #475569;
+$apg-gray-500: #64748b;
+$apg-gray-400: #94a3b8;
+$apg-gray-300: #cbd5f5;
+$apg-gray-200: #e2e8f0;
+$apg-gray-100: #f1f5f9;
+$apg-gray-50:  #f8fafc;
+
+// Radius & ombres (pour les cartes, boutons, dés, etc.)
+$apg-radius-sm: 6px;
+$apg-radius-md: 12px;
+$apg-radius-lg: 18px;
+$apg-radius-pill: 999px;
+
+$apg-shadow-soft: 0 8px 20px rgba(15, 23, 42, 0.18);
+$apg-shadow-strong: 0 14px 40px rgba(15, 23, 42, 0.35);
+
+// Typography
+$apg-font-size-sm: 0.875rem;  // 14px
+$apg-font-size-md: 1rem;      // 16px
+$apg-font-size-lg: 1.125rem;  // 18px
+$apg-font-size-xl: 1.5rem;    // 24px
+$apg-font-size-2xl: 2rem;     // 32px
+
+$apg-font-weight-regular: 400;
+$apg-font-weight-medium: 500;
+$apg-font-weight-semibold: 600;
+$apg-font-weight-bold: 700;
+
+// -------------------------------
+// Thèmes (semantic tokens)
+// -------------------------------
+// Chaque thème est une map SCSS : on s’en sert pour générer
+// les variables CSS (--color-xxx) dans :root et [data-theme="dark"].
+
+$apg-theme-light: (
+  bg:           $apg-gray-50,
+  bg-muted:     $apg-gray-100,
+  surface:      #ffffff,
+  surface-alt:  #fefefe,
+
+  border-subtle: $apg-gray-200,
+  border-strong: $apg-gray-300,
+
+  text-main:   $apg-gray-900,
+  text-muted:  $apg-gray-500,
+  text-soft:   $apg-gray-400,
+  text-on-primary: #ffffff,
+
+  primary:        $apg-color-primary,
+  primary-soft:   $apg-color-primary-soft,
+  primary-border: #4b32d6,
+
+  pi:          $apg-color-pi,
+  accent:      $apg-color-accent,
+  success:     $apg-color-success,
+  warning:     $apg-color-warning,
+  danger:      $apg-color-danger,
+
+  shadow-soft:   $apg-shadow-soft,
+  shadow-strong: $apg-shadow-strong,
+);
+
+$apg-theme-dark: (
+  bg:           #050816,
+  bg-muted:     #050b1f,
+  surface:      $apg-gray-800,
+  surface-alt:  #020617,
+
+  border-subtle: rgba(148, 163, 184, 0.25),
+  border-strong: rgba(148, 163, 184, 0.45),
+
+  text-main:   #e5e7eb,
+  text-muted:  #9ca3af,
+  text-soft:   #6b7280,
+  text-on-primary: #ffffff,
+
+  primary:        #b29cff,
+  primary-soft:   rgba(108, 92, 231, 0.2),
+  primary-border: #7c6aff,
+
+  pi:          #37f2b0,
+  accent:      #ffd94d,
+  success:     #4ade80,
+  warning:     #facc15,
+  danger:      #fb7185,
+
+  shadow-soft:   0 10px 30px rgba(0, 0, 0, 0.65),
+  shadow-strong: 0 18px 60px rgba(0, 0, 0, 0.9),
+);
+
+// -------------------------------
+// Mixin pour générer les vars CSS
+// -------------------------------
+@mixin apg-export-theme($theme-map) {
+  // Backgrounds & surfaces
+  --apg-bg:            map.get($theme-map, bg);
+  --apg-bg-muted:      map.get($theme-map, bg-muted);
+  --apg-surface:       map.get($theme-map, surface);
+  --apg-surface-alt:   map.get($theme-map, surface-alt);
+
+  // Border
+  --apg-border-subtle: map.get($theme-map, border-subtle);
+  --apg-border-strong: map.get($theme-map, border-strong);
+
+  // Text
+  --apg-text-main:      map.get($theme-map, text-main);
+  --apg-text-muted:     map.get($theme-map, text-muted);
+  --apg-text-soft:      map.get($theme-map, text-soft);
+  --apg-text-on-primary:map.get($theme-map, text-on-primary);
+
+  // Brand / état
+  --apg-primary:        map.get($theme-map, primary);
+  --apg-primary-soft:   map.get($theme-map, primary-soft);
+  --apg-primary-border: map.get($theme-map, primary-border);
+  --apg-pi:             map.get($theme-map, pi);
+  --apg-accent:         map.get($theme-map, accent);
+  --apg-success:        map.get($theme-map, success);
+  --apg-warning:        map.get($theme-map, warning);
+  --apg-danger:         map.get($theme-map, danger);
+
+  // Shadow & radius (peuvent rester constants, mais on les expose quand même)
+  --apg-radius-sm:   #{$apg-radius-sm};
+  --apg-radius-md:   #{$apg-radius-md};
+  --apg-radius-lg:   #{$apg-radius-lg};
+  --apg-radius-pill: #{$apg-radius-pill};
+
+  --apg-shadow-soft:   map.get($theme-map, shadow-soft);
+  --apg-shadow-strong: map.get($theme-map, shadow-strong);
+
+  // Fonts
+  --apg-font-sans:   #{$apg-font-family-sans};
+  --apg-font-title:  #{$apg-font-family-title};
+}
+
+// -------------------------------
+// Application des thèmes
+// -------------------------------
+// Thème par défaut : light
+:root {
+  @include apg-export-theme($apg-theme-light);
+}
+
+// Thème dark (par exemple <html data-theme="dark"> ou <body ...>)
+[data-theme="dark"] {
+  @include apg-export-theme($apg-theme-dark);
+}

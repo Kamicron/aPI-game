@@ -6,8 +6,8 @@
 
       <div class="lobby-content">
         <!-- Créer une partie -->
-        <div class="lobby-card">
-          <h2 class="card-title">Créer une partie</h2>
+
+        <lobby-card title="Créer une partie">
           <div class="form-group">
             <label for="playerName">Votre pseudo</label>
             <input id="playerName" v-model="playerName" type="text" placeholder="Entrez votre pseudo" maxlength="20" />
@@ -15,11 +15,10 @@
           <button class="btn btn-primary" @click="createRoom" :disabled="!playerName.trim()">
             Créer une partie
           </button>
-        </div>
+        </lobby-card>
 
         <!-- Rejoindre une partie -->
-        <div class="lobby-card">
-          <h2 class="card-title">Rejoindre une partie</h2>
+        <lobby-card title="Rejoindre une partie">
           <div class="form-group">
             <label for="joinPlayerName">Votre pseudo</label>
             <input id="joinPlayerName" v-model="joinPlayerName" type="text" placeholder="Entrez votre pseudo"
@@ -33,7 +32,7 @@
           <button class="btn btn-secondary" @click="joinRoom" :disabled="!joinPlayerName.trim() || !roomCode.trim()">
             Rejoindre
           </button>
-        </div>
+        </lobby-card>
       </div>
     </div>
   </div>
@@ -89,7 +88,7 @@ async function joinRoom() {
 <style scoped lang="scss">
 .lobby {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--apg-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -104,10 +103,10 @@ async function joinRoom() {
 .lobby-title {
   font-size: 48px;
   font-weight: 800;
-  color: white;
+  color: red;
   text-align: center;
   margin: 0 0 8px 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  text-shadow: red;
 }
 
 .lobby-subtitle {
@@ -124,10 +123,10 @@ async function joinRoom() {
 }
 
 .lobby-card {
-  background: white;
+  background: var(--apg-surface);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: red;
 }
 
 .card-title {
