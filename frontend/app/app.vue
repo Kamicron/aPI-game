@@ -47,4 +47,63 @@ body {
 .panel-title {
   font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+/* -----------------------------
+   Toast (vue3-modern-toast)
+   ----------------------------- */
+body .toast {
+  padding: $apg-margin-md $apg-margin-lg !important;
+  background: var(--apg-surface-alt) !important;
+  color: var(--apg-text-main) !important;
+  box-shadow: var(--apg-shadow-soft) !important;
+}
+
+body .toast-content {
+  display: flex;
+  align-items: flex-start;
+  gap: $apg-margin-sm;
+}
+
+body .toast-icon {
+  flex-shrink: 0;
+}
+
+body .toast-message {
+  font-size: $apg-font-size-sm;
+}
+
+body .toast-close {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  background: transparent;
+  border: none;
+  color: var(--apg-text-soft);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 $apg-margin-sm;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+/* Animations d'apparition / disparition */
+body .toast-enter-active,
+body .toast-leave-active {
+  transition: all 0.25s ease;
+}
+
+body .toast-enter-from {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+body .toast-leave-to {
+  opacity: 0;
+  transform: translateX(-16px);
+}
 </style>
