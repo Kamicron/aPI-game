@@ -91,9 +91,20 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { EToast } from 'vue3-modern-toast'
 import { useGameState } from '../../composables/useGameState'
 import PlayerPawn from '../components/board/PlayerPawn.vue'
 
+const { $toast } = useNuxtApp()
+
+function showToast() {
+  $toast.show({
+    message: 'Code copié dans le presse-papiers',
+    type: EToast.SUCCESS,
+    duration: 3000,
+    dismissible: true,
+  })
+}
 const route = useRoute()
 
 const roomCode = ((route.query.room as string | undefined) ?? 'default-room') as string
@@ -108,6 +119,7 @@ const playerId = getLocalStorage('playerId', 'host-' + Math.random().toString(36
 const defaultColor = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#95E1D3', '#6366f1'][Math.floor(Math.random() * 5)]
 
 const colorInput = ref(defaultColor)
+const copySuccess = ref(false)
 
 const { gameState, socket, changeColor } = useGameState(roomCode, playerId, playerName, defaultColor)
 
@@ -137,6 +149,7 @@ const copyRoomCode = async () => {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(roomCode)
+      showToast()
     } catch (e) {
       console.error('Failed to copy room code', e)
     }
